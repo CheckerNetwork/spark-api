@@ -1,6 +1,5 @@
 # syntax = docker/dockerfile:1
 
-# Adjust NODE_VERSION as desired
 FROM node:22.13.1-slim AS base
 
 LABEL fly_launch_runtime="nodejs"
