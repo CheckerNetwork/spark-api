@@ -339,7 +339,7 @@ export async function getRoundStartEpochWithBackoff (
 ) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const roundStartEpoch =  await getRoundStartEpoch(
+      const roundStartEpoch = await getRoundStartEpoch(
         contract,
         roundIndex,
         50 * (2 ** attempt)

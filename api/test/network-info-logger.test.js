@@ -33,7 +33,6 @@ describe('logNetworkInfo', () => {
     'cf-region-code': 'region-code3',
     'cf-timezone': 'timezone3'
   }
-  
 
   beforeEach(async () => {
     clearNetworkInfoStationIdsSeen()
