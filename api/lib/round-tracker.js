@@ -20,14 +20,14 @@ export const ROUND_TASKS_TO_NODE_TASKS_RATIO = BASELINE_TASKS_PER_ROUND / BASELI
 /**
  * @param {object} args
  * @param {import('pg').Pool} args.pgPool
- * @param {import('../../common/typings.js').RecordTelemetryFn} recordTelemetry
+ * @param {import('../../common/typings.js').RecordTelemetryFn} args.recordTelemetry
  * @param {AbortSignal} [args.signal]
- * @returns {
+ * @returns {Promise<{
  *  sparkRoundNumber: bigint;
  *  meridianContractAddress: string;
  *  meridianRoundIndex: bigint;
  *  roundStartEpoch: bigint;
- * }
+ * }>}
  */
 export async function startRoundTracker ({ pgPool, signal, recordTelemetry }) {
   const contract = await createMeridianContract()
@@ -35,7 +35,7 @@ export async function startRoundTracker ({ pgPool, signal, recordTelemetry }) {
   const onRoundStart = (newRoundIndex, ...args) => {
     /** @type {import('ethers').ContractEventPayload} */
     const event = args.pop()
-    const blockNumber = event?.log?.blockNumber
+    const blockNumber = event?.log?.blockNumber ? BigInt(event.log.blockNumber) : undefined
     if (blockNumber === undefined) {
       console.warn(
         'Ethers.js event data did not include ContractEventPayload with the block number. ' +
@@ -64,7 +64,7 @@ export async function startRoundTracker ({ pgPool, signal, recordTelemetry }) {
  * @param {MeridianContract} contract
  * @param {bigint} newRoundIndex
  * @param {import('../../common/typings.js').RecordTelemetryFn} recordTelemetry
- * @param {number} [roundStartEpoch]
+ * @param {bigint} [roundStartEpoch]
  */
 async function updateSparkRound (pgPool, contract, newRoundIndex, recordTelemetry, roundStartEpoch) {
   const meridianRoundIndex = BigInt(newRoundIndex)
@@ -339,11 +339,13 @@ export async function getRoundStartEpochWithBackoff (
 ) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      return await getRoundStartEpoch(
+      const roundStartEpoch =  await getRoundStartEpoch(
         contract,
         roundIndex,
         50 * (2 ** attempt)
       )
+
+      return BigInt(roundStartEpoch)
     } catch (err) {
       if (attempt < maxAttempts) {
         console.warn('Failed to get round start epoch, retrying...', {

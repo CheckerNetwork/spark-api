@@ -39,13 +39,14 @@ const stuckTransactionsCanceller = createStuckTransactionsCanceller({ pgClient: 
 console.log(
   'Wallet address:',
   signer.address,
+  // @ts-ignore ethers return address as `string` type, but in fact it's an `0x{string}` type
   newDelegatedEthAddress(signer.address, 'f').toString()
 )
 
 await Promise.all([
   (async () => {
     while (true) {
-      const lastStart = new Date()
+      const lastStart = Date.now()
       const ps = spawn(
         'node',
         [
@@ -55,11 +56,11 @@ await Promise.all([
         {
           env: {
             ...process.env,
-            MIN_ROUND_LENGTH_SECONDS,
-            MAX_MEASUREMENTS_PER_ROUND,
             WALLET_SEED,
             W3UP_PRIVATE_KEY,
-            W3UP_PROOF
+            W3UP_PROOF,
+            MIN_ROUND_LENGTH_SECONDS: MIN_ROUND_LENGTH_SECONDS.toString(),
+            MAX_MEASUREMENTS_PER_ROUND: MAX_MEASUREMENTS_PER_ROUND.toString()
           }
         }
       )
@@ -70,7 +71,7 @@ await Promise.all([
         console.error(`Bad exit code: ${code}`)
         Sentry.captureMessage(`Bad exit code: ${code}`)
       }
-      const dt = new Date() - lastStart
+      const dt = Date.now() - lastStart
       console.log(`Done. This iteration took ${dt}ms.`)
       if (dt < minRoundLength) await timers.setTimeout(minRoundLength - dt)
     }

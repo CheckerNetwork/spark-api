@@ -3,6 +3,14 @@
 import pRetry from 'p-retry'
 import * as SparkImpactEvaluator from '@filecoin-station/spark-impact-evaluator'
 
+class TransactionReceiptError extends Error {
+  constructor (message, tx, receipt) {
+    super(message)
+    this.tx = tx
+    this.receipt = receipt
+  }
+}
+
 export const publish = async ({
   client: pgPool,
   web3Storage,
@@ -54,14 +62,14 @@ export const publish = async ({
   logger.log(`Publishing ${measurements.length} measurements. Total unpublished: ${totalCount}. Batch size: ${maxMeasurements}.`)
 
   // Share measurements
-  const start = new Date()
+  const start = Date.now()
   const file = new File(
     [measurements.map(m => JSON.stringify(m)).join('\n')],
     'measurements.ndjson',
     { type: 'application/json' }
   )
   const cid = await web3Storage.uploadFile(file)
-  const uploadMeasurementsDuration = new Date() - start
+  const uploadMeasurementsDuration = Date.now() - start
   logger.log(`Measurements packaged in ${cid}`)
 
   // Call contract with CID
@@ -140,21 +148,18 @@ export const publish = async ({
 
 const commitMeasurements = async ({ cid, ieContract, logger, stuckTransactionsCanceller }) => {
   logger.log('Invoking ie.addMeasurements()...')
-  const start = new Date()
+  const start = Date.now()
   const tx = await ieContract.addMeasurements(cid.toString())
   await stuckTransactionsCanceller.addPending(tx)
   logger.log('Waiting for the transaction receipt:', tx.hash)
   const receipt = await tx.wait()
   stuckTransactionsCanceller.removeConfirmed(tx)
   if (receipt.logs.length === 0) {
-    const err = new Error('No logs found in the receipt')
-    err.receipt = receipt
-    err.tx = tx
-    throw err
+    throw new TransactionReceiptError('No logs found in the receipt', tx, receipt)
   }
   const log = ieContract.interface.parseLog(receipt.logs[0])
   const roundIndex = log.args[1]
-  const ieAddMeasurementsDuration = new Date() - start
+  const ieAddMeasurementsDuration = Date.now() - start
   logger.log('Measurements added to round %s in %sms', roundIndex.toString(), ieAddMeasurementsDuration)
 
   return { roundIndex, ieAddMeasurementsDuration }

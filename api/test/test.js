@@ -643,6 +643,7 @@ describe('Routes', () => {
             error: console.error,
             request () {}
           },
+          dealIngestionAccessToken: VALID_DEAL_INGESTION_TOKEN,
           domain: 'foobar'
         })
         server = http.createServer(handler)

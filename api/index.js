@@ -55,7 +55,7 @@ const handler = async (req, res, client, domain, dealIngestionAccessToken) => {
 
 const createMeasurement = async (req, res, client) => {
   const body = await getRawBody(req, { limit: '100kb' })
-  const measurement = JSON.parse(body)
+  const measurement = JSON.parse(body.toString())
   validate(measurement, 'sparkVersion', { type: 'string', required: false })
   validate(measurement, 'zinniaVersion', { type: 'string', required: false })
   assert(
@@ -205,7 +205,7 @@ const getRoundDetails = async (req, res, client, roundParam) => {
     const meridianContractAddress = round.meridian_address
     const meridianRoundIndex = BigInt(round.meridian_round)
     const addr = encodeURIComponent(meridianContractAddress)
-    const idx = encodeURIComponent(meridianRoundIndex)
+    const idx = encodeURIComponent(meridianRoundIndex.toString())
     const location = `/rounds/meridian/${addr}/${idx}`
 
     // Cache the location of the current round for a short time to ensure clients learn quickly
@@ -413,7 +413,7 @@ export const ingestEligibleDeals = async (req, res, client, dealIngestionAccessT
   }
 
   const body = await getRawBody(req, { limit: '100mb' })
-  const deals = JSON.parse(body)
+  const deals = JSON.parse(body.toString())
   assert(Array.isArray(deals), 400, 'Invalid JSON Body, must be an array')
   for (const d of deals) {
     validate(d, 'clientId', { type: 'string', required: true })
@@ -463,12 +463,12 @@ export const createHandler = async ({
   domain
 }) => {
   return (req, res) => {
-    const start = new Date()
+    const start = Date.now()
     logger.request(`${req.method} ${req.url} ...`)
     handler(req, res, client, domain, dealIngestionAccessToken)
       .catch(err => errorHandler(res, err, logger))
       .then(() => {
-        logger.request(`${req.method} ${req.url} ${res.statusCode} (${new Date() - start}ms)`)
+        logger.request(`${req.method} ${req.url} ${res.statusCode} (${Date.now() - start}ms)`)
       })
   }
 }

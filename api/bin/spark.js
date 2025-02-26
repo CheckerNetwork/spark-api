@@ -70,7 +70,7 @@ setInterval(clearNetworkInfoStationIdsSeen, 1000 * 60 * 60 * 24)
 const logger = {
   error: console.error,
   info: console.info,
-  request: ['1', 'true'].includes(REQUEST_LOGGING) ? console.info : () => {}
+  request: ['1', 'true'].includes(REQUEST_LOGGING) ? console.info : () => { }
 }
 
 const handler = await createHandler({
@@ -79,8 +79,10 @@ const handler = await createHandler({
   dealIngestionAccessToken: DEAL_INGESTER_TOKEN,
   domain: DOMAIN
 })
+
+const port = Number(PORT)
 const server = http.createServer(handler)
-console.log('Starting the http server on host %j port %s', HOST, PORT)
-server.listen(PORT, HOST)
+console.log('Starting the http server on host %j port %s', HOST, port)
+server.listen(port, HOST)
 await once(server, 'listening')
 console.log(`http://${HOST}:${PORT}`)

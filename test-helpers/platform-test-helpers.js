@@ -6,6 +6,7 @@ import { Point } from '@influxdata/influxdb-client'
 export const { DATABASE_URL } = process.env
 
 export const logger = {
+  ...console,
   log () {},
   error (...args) {
     console.error(...args)
