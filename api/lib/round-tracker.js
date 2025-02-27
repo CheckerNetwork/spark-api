@@ -369,10 +369,7 @@ export async function getRoundStartEpoch (contract, roundIndex, blocks) {
   assert.strictEqual(typeof blocks, 'number', `blocks must be a number, received: ${typeof blocks}`)
 
   const recentRoundStartEvents = (await contract.queryFilter('RoundStart', -blocks))
-    .map(log => {
-      const decoded = contract.interface.decodeEventLog('RoundStart', log.data, log.topics)
-      return { blockNumber: log.blockNumber, roundIndex: decoded[0] }
-    })
+    .map((/** @type {import('ethers').EventLog} */ { blockNumber, args }) => ({ blockNumber, roundIndex: args[0] }))
 
   const roundStart = recentRoundStartEvents.find(e => e.roundIndex === roundIndex)
   if (!roundStart) {
