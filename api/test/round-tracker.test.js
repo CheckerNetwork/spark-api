@@ -635,7 +635,7 @@ describe('Round Tracker', () => {
       const contract = await createMeridianContract()
       const roundIndex = await contract.currentRoundIndex()
       const startEpoch = await getRoundStartEpoch(contract, roundIndex, 500)
-      assert.strictEqual(typeof startEpoch, 'number')
+      assert.strictEqual(typeof startEpoch, 'bigint')
     })
   })
 
@@ -645,7 +645,7 @@ describe('Round Tracker', () => {
       const contract = await createMeridianContract()
       const roundIndex = await contract.currentRoundIndex()
       const startEpoch = await getRoundStartEpochWithBackoff(contract, roundIndex)
-      assert.strictEqual(typeof startEpoch, 'number')
+      assert.strictEqual(typeof startEpoch, 'bigint')
     })
   })
 

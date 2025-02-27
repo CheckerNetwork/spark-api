@@ -339,13 +339,11 @@ export async function getRoundStartEpochWithBackoff (
 ) {
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const roundStartEpoch = await getRoundStartEpoch(
+      return await getRoundStartEpoch(
         contract,
         roundIndex,
         50 * (2 ** attempt)
       )
-
-      return BigInt(roundStartEpoch)
     } catch (err) {
       if (attempt < maxAttempts) {
         console.warn('Failed to get round start epoch, retrying...', {
@@ -364,14 +362,17 @@ export async function getRoundStartEpochWithBackoff (
 /**
  * @param {MeridianContract} contract
  * @param {bigint} roundIndex
- * @returns {Promise<number>} Filecoin Epoch (ETH block number) when the SPARK round started
+ * @returns {Promise<bigint>} Filecoin Epoch (ETH block number) when the SPARK round started
  */
 export async function getRoundStartEpoch (contract, roundIndex, blocks) {
   assert.strictEqual(typeof roundIndex, 'bigint', `roundIndex must be a bigint, received: ${typeof roundIndex}`)
   assert.strictEqual(typeof blocks, 'number', `blocks must be a number, received: ${typeof blocks}`)
 
   const recentRoundStartEvents = (await contract.queryFilter('RoundStart', -blocks))
-    .map(({ blockNumber, args }) => ({ blockNumber, roundIndex: args[0] }))
+    .map(log => {
+      const decoded = contract.interface.decodeEventLog('RoundStart', log.data, log.topics);
+      return { blockNumber: log.blockNumber, roundIndex: decoded[0] };
+    })
 
   const roundStart = recentRoundStartEvents.find(e => e.roundIndex === roundIndex)
   if (!roundStart) {
@@ -381,5 +382,5 @@ export async function getRoundStartEpoch (contract, roundIndex, blocks) {
     )
   }
 
-  return roundStart.blockNumber
+  return BigInt(roundStart.blockNumber)
 }
