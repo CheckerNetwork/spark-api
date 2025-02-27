@@ -463,7 +463,7 @@ export const createHandler = async ({
   domain
 }) => {
   return (req, res) => {
-    const start = Date.now()
+    const start = new Date()
     logger.request(`${req.method} ${req.url} ...`)
     handler(req, res, client, domain, dealIngestionAccessToken)
       .catch(err => errorHandler(res, err, logger))

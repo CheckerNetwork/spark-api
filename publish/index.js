@@ -54,14 +54,14 @@ export const publish = async ({
   logger.log(`Publishing ${measurements.length} measurements. Total unpublished: ${totalCount}. Batch size: ${maxMeasurements}.`)
 
   // Share measurements
-  const start = Date.now()
+  const start = new Date()
   const file = new File(
     [measurements.map(m => JSON.stringify(m)).join('\n')],
     'measurements.ndjson',
     { type: 'application/json' }
   )
   const cid = await web3Storage.uploadFile(file)
-  const uploadMeasurementsDuration = Date.now() - start
+  const uploadMeasurementsDuration = new Date().getTime() - start.getTime()
   logger.log(`Measurements packaged in ${cid}`)
 
   // Call contract with CID
@@ -140,7 +140,7 @@ export const publish = async ({
 
 const commitMeasurements = async ({ cid, ieContract, logger, stuckTransactionsCanceller }) => {
   logger.log('Invoking ie.addMeasurements()...')
-  const start = Date.now()
+  const start = new Date()
   const tx = await ieContract.addMeasurements(cid.toString())
   await stuckTransactionsCanceller.addPending(tx)
   logger.log('Waiting for the transaction receipt:', tx.hash)
@@ -151,7 +151,7 @@ const commitMeasurements = async ({ cid, ieContract, logger, stuckTransactionsCa
   }
   const log = ieContract.interface.parseLog(receipt.logs[0])
   const roundIndex = log.args[1]
-  const ieAddMeasurementsDuration = Date.now() - start
+  const ieAddMeasurementsDuration = new Date().getTime() - start.getTime()
   logger.log('Measurements added to round %s in %sms', roundIndex.toString(), ieAddMeasurementsDuration)
 
   return { roundIndex, ieAddMeasurementsDuration }

@@ -46,7 +46,7 @@ console.log(
 await Promise.all([
   (async () => {
     while (true) {
-      const lastStart = Date.now()
+      const lastStart = new Date()
       const ps = spawn(
         'node',
         [
@@ -71,7 +71,7 @@ await Promise.all([
         console.error(`Bad exit code: ${code}`)
         Sentry.captureMessage(`Bad exit code: ${code}`)
       }
-      const dt = Date.now() - lastStart
+      const dt = new Date().getTime() - lastStart.getTime()
       console.log(`Done. This iteration took ${dt}ms.`)
       if (dt < minRoundLength) await timers.setTimeout(minRoundLength - dt)
     }
