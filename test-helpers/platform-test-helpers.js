@@ -31,3 +31,11 @@ export const createTelemetryRecorderStub = () => {
 
   return { recordTelemetry, telemetry }
 }
+
+/**
+ * @param {Point} point
+ */
+export const getPointName = (point) => {
+  // Point.name is marked as a private property at the TypeScript level
+  return /** @type {any} */(point).name
+}

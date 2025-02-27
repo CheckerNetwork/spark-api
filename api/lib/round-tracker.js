@@ -370,8 +370,8 @@ export async function getRoundStartEpoch (contract, roundIndex, blocks) {
 
   const recentRoundStartEvents = (await contract.queryFilter('RoundStart', -blocks))
     .map(log => {
-      const decoded = contract.interface.decodeEventLog('RoundStart', log.data, log.topics);
-      return { blockNumber: log.blockNumber, roundIndex: decoded[0] };
+      const decoded = contract.interface.decodeEventLog('RoundStart', log.data, log.topics)
+      return { blockNumber: log.blockNumber, roundIndex: decoded[0] }
     })
 
   const roundStart = recentRoundStartEvents.find(e => e.roundIndex === roundIndex)

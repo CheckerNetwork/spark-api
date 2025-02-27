@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { createTelemetryRecorderStub } from '../../test-helpers/platform-test-helpers.js'
+import { createTelemetryRecorderStub, getPointName } from '../../test-helpers/platform-test-helpers.js'
 import { clearNetworkInfoStationIdsSeen, logNetworkInfo } from '../lib/network-info-logger.js'
 
 describe('logNetworkInfo', () => {
@@ -56,8 +56,7 @@ describe('logNetworkInfo', () => {
     }
 
     assert.deepStrictEqual(
-      // @ts-ignore
-      telemetry.map(p => ({ _point: p.name, ...p.fields })),
+      telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
       [
         { _point: 'network-info', ...expectedFields1 },
         { _point: 'network-info', ...expectedFields2 }
@@ -80,8 +79,7 @@ describe('logNetworkInfo', () => {
 
     assert.strictEqual(telemetry.length, 2)
     assert.deepStrictEqual(
-      // @ts-ignore
-      telemetry.map(p => ({ _point: p.name, 'cf-ipcity': p.fields['cf-ipcity'] })),
+      telemetry.map(p => ({ _point: getPointName(p), 'cf-ipcity': p.fields['cf-ipcity'] })),
       [
         { _point: 'network-info', 'cf-ipcity': '"city1"' },
         { _point: 'network-info', 'cf-ipcity': '"city3"' }
