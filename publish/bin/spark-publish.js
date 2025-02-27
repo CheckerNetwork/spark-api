@@ -39,7 +39,7 @@ const stuckTransactionsCanceller = createStuckTransactionsCanceller({ pgClient: 
 console.log(
   'Wallet address:',
   signer.address,
-  // @ts-ignore ethers return address as `string` type, but in fact it's an `0x{string}` type
+  // @ts-ignore `signer.address` is declared as `string` but it's actually an `ethers.EthAddress`
   newDelegatedEthAddress(signer.address, 'f').toString()
 )
 
