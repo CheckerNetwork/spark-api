@@ -3,14 +3,6 @@
 import pRetry from 'p-retry'
 import * as SparkImpactEvaluator from '@filecoin-station/spark-impact-evaluator'
 
-class TransactionReceiptError extends Error {
-  constructor (message, tx, receipt) {
-    super(message)
-    this.tx = tx
-    this.receipt = receipt
-  }
-}
-
 export const publish = async ({
   client: pgPool,
   web3Storage,
@@ -155,7 +147,7 @@ const commitMeasurements = async ({ cid, ieContract, logger, stuckTransactionsCa
   const receipt = await tx.wait()
   stuckTransactionsCanceller.removeConfirmed(tx)
   if (receipt.logs.length === 0) {
-    throw new TransactionReceiptError('No logs found in the receipt', tx, receipt)
+    throw Object.assign(new Error('No logs found in the receipt'), { tx, receipt })
   }
   const log = ieContract.interface.parseLog(receipt.logs[0])
   const roundIndex = log.args[1]
