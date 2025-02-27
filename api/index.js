@@ -468,7 +468,7 @@ export const createHandler = async ({
     handler(req, res, client, domain, dealIngestionAccessToken)
       .catch(err => errorHandler(res, err, logger))
       .then(() => {
-        logger.request(`${req.method} ${req.url} ${res.statusCode} (${Date.now() - start}ms)`)
+        logger.request(`${req.method} ${req.url} ${res.statusCode} (${new Date().getTime() - start.getTime()}ms)`)
       })
   }
 }
