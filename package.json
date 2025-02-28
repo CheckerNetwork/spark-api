@@ -11,10 +11,16 @@
   "scripts": {
     "migrate": "node bin/migrate.js",
     "lint": "standard",
-    "test": "npm run lint && npm test --workspaces"
+    "test:types": "tsc -p .",
+    "test:unit": "npm test --workspaces --if-present",
+    "test": "npm run lint && npm run test:types && npm run test:unit"
   },
   "devDependencies": {
-    "standard": "^17.1.2"
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^22.13.5",
+    "@types/pg": "^8.11.11",
+    "standard": "^17.1.2",
+    "typescript": "^5.7.3"
   },
   "standard": {
     "env": [

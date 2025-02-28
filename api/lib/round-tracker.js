@@ -20,14 +20,14 @@ export const ROUND_TASKS_TO_NODE_TASKS_RATIO = BASELINE_TASKS_PER_ROUND / BASELI
 /**
  * @param {object} args
  * @param {import('pg').Pool} args.pgPool
- * @param {import('../../common/typings.js').RecordTelemetryFn} recordTelemetry
+ * @param {import('../../common/typings.js').RecordTelemetryFn} args.recordTelemetry
  * @param {AbortSignal} [args.signal]
- * @returns {
+ * @returns {Promise<{
  *  sparkRoundNumber: bigint;
  *  meridianContractAddress: string;
  *  meridianRoundIndex: bigint;
  *  roundStartEpoch: bigint;
- * }
+ * }>}
  */
 export async function startRoundTracker ({ pgPool, signal, recordTelemetry }) {
   const contract = await createMeridianContract()
@@ -35,7 +35,7 @@ export async function startRoundTracker ({ pgPool, signal, recordTelemetry }) {
   const onRoundStart = (newRoundIndex, ...args) => {
     /** @type {import('ethers').ContractEventPayload} */
     const event = args.pop()
-    const blockNumber = event?.log?.blockNumber
+    const blockNumber = event?.log?.blockNumber ? BigInt(event.log.blockNumber) : undefined
     if (blockNumber === undefined) {
       console.warn(
         'Ethers.js event data did not include ContractEventPayload with the block number. ' +
@@ -64,7 +64,7 @@ export async function startRoundTracker ({ pgPool, signal, recordTelemetry }) {
  * @param {MeridianContract} contract
  * @param {bigint} newRoundIndex
  * @param {import('../../common/typings.js').RecordTelemetryFn} recordTelemetry
- * @param {number} [roundStartEpoch]
+ * @param {bigint} [roundStartEpoch]
  */
 async function updateSparkRound (pgPool, contract, newRoundIndex, recordTelemetry, roundStartEpoch) {
   const meridianRoundIndex = BigInt(newRoundIndex)
@@ -362,14 +362,14 @@ export async function getRoundStartEpochWithBackoff (
 /**
  * @param {MeridianContract} contract
  * @param {bigint} roundIndex
- * @returns {Promise<number>} Filecoin Epoch (ETH block number) when the SPARK round started
+ * @returns {Promise<bigint>} Filecoin Epoch (ETH block number) when the SPARK round started
  */
 export async function getRoundStartEpoch (contract, roundIndex, blocks) {
   assert.strictEqual(typeof roundIndex, 'bigint', `roundIndex must be a bigint, received: ${typeof roundIndex}`)
   assert.strictEqual(typeof blocks, 'number', `blocks must be a number, received: ${typeof blocks}`)
 
   const recentRoundStartEvents = (await contract.queryFilter('RoundStart', -blocks))
-    .map(({ blockNumber, args }) => ({ blockNumber, roundIndex: args[0] }))
+    .map((/** @type {import('ethers').EventLog} */ { blockNumber, args }) => ({ blockNumber, roundIndex: args[0] }))
 
   const roundStart = recentRoundStartEvents.find(e => e.roundIndex === roundIndex)
   if (!roundStart) {
@@ -379,5 +379,5 @@ export async function getRoundStartEpoch (contract, roundIndex, blocks) {
     )
   }
 
-  return roundStart.blockNumber
+  return BigInt(roundStart.blockNumber)
 }

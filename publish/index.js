@@ -61,7 +61,7 @@ export const publish = async ({
     { type: 'application/json' }
   )
   const cid = await web3Storage.uploadFile(file)
-  const uploadMeasurementsDuration = new Date() - start
+  const uploadMeasurementsDuration = new Date().getTime() - start.getTime()
   logger.log(`Measurements packaged in ${cid}`)
 
   // Call contract with CID
@@ -147,14 +147,11 @@ const commitMeasurements = async ({ cid, ieContract, logger, stuckTransactionsCa
   const receipt = await tx.wait()
   stuckTransactionsCanceller.removeConfirmed(tx)
   if (receipt.logs.length === 0) {
-    const err = new Error('No logs found in the receipt')
-    err.receipt = receipt
-    err.tx = tx
-    throw err
+    throw Object.assign(new Error('No logs found in the receipt'), { tx, receipt })
   }
   const log = ieContract.interface.parseLog(receipt.logs[0])
   const roundIndex = log.args[1]
-  const ieAddMeasurementsDuration = new Date() - start
+  const ieAddMeasurementsDuration = new Date().getTime() - start.getTime()
   logger.log('Measurements added to round %s in %sms', roundIndex.toString(), ieAddMeasurementsDuration)
 
   return { roundIndex, ieAddMeasurementsDuration }

@@ -5,7 +5,7 @@ export const clearNetworkInfoStationIdsSeen = () => {
 }
 
 /**
- * @param {import('node:http').IncomingMessage} req
+ * @param {import('node:http').IncomingHttpHeaders} headers
  * @param {string} stationId
  * @param {import('../../common/typings.js').RecordTelemetryFn} recordTelemetry
  */

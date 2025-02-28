@@ -16,7 +16,7 @@ import { migrate } from '../../migrations/index.js'
 import { assertApproximately } from '../../test-helpers/assert.js'
 import { createMeridianContract } from '../lib/ie-contract.js'
 import { afterEach, beforeEach } from 'mocha'
-import { createTelemetryRecorderStub } from '../../test-helpers/platform-test-helpers.js'
+import { createTelemetryRecorderStub, getPointName } from '../../test-helpers/platform-test-helpers.js'
 
 const { DATABASE_URL } = process.env
 
@@ -77,7 +77,7 @@ describe('Round Tracker', () => {
       // first round number was correctly initialised
       assert.strictEqual(await getFirstRoundForContractAddress(pgClient, '0x1a'), '1')
       assert.deepStrictEqual(
-        telemetry.map(p => ({ _point: p.name, ...p.fields })),
+        telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
         [
           {
             _point: 'round',
@@ -109,7 +109,7 @@ describe('Round Tracker', () => {
       // first round number was not changed
       assert.strictEqual(await getFirstRoundForContractAddress(pgClient, '0x1a'), '1')
       assert.deepStrictEqual(
-        telemetry.map(p => ({ _point: p.name, ...p.fields }))[1],
+        telemetry.map(p => ({ _point: getPointName(p), ...p.fields }))[1],
         {
           _point: 'round',
           current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
@@ -135,7 +135,7 @@ describe('Round Tracker', () => {
       })
       assert.strictEqual(sparkRoundNumber, 1n)
       assert.deepStrictEqual(
-        telemetry.map(p => ({ _point: p.name, ...p.fields })),
+        telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
         [
           {
             _point: 'round',
@@ -185,7 +185,7 @@ describe('Round Tracker', () => {
       // first round number was not changed
       assert.strictEqual(await getFirstRoundForContractAddress(pgClient, '0x1b'), '2')
       assert.deepStrictEqual(
-        telemetry.map(p => ({ _point: p.name, ...p.fields }))[1],
+        telemetry.map(p => ({ _point: getPointName(p), ...p.fields }))[1],
         {
           _point: 'round',
           current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
@@ -220,7 +220,7 @@ describe('Round Tracker', () => {
       assert.strictEqual(sparkRounds[0].meridian_address, '0x1a')
       assert.strictEqual(sparkRounds[0].meridian_round, '1')
       assert.deepStrictEqual(
-        telemetry.map(p => ({ _point: p.name, ...p.fields })),
+        telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
         [
           {
             _point: 'round',
@@ -239,7 +239,8 @@ describe('Round Tracker', () => {
         meridianContractAddress,
         meridianRoundIndex,
         roundStartEpoch,
-        pgClient
+        pgClient,
+        recordTelemetry
       })
       assert.strictEqual(sparkRoundNumber, 1n)
       sparkRounds = (await pgClient.query('SELECT * FROM spark_rounds ORDER BY id')).rows
@@ -270,7 +271,7 @@ describe('Round Tracker', () => {
         assert.match(t.miner_id, /^f0/, `task#${ix} miner_id should match /^f0/, found ${t.miner_id}`)
       }
       assert.deepStrictEqual(
-        telemetry.map(p => ({ _point: p.name, ...p.fields })),
+        telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
         [
           {
             _point: 'round',
@@ -314,7 +315,7 @@ describe('Round Tracker', () => {
         assert.strictEqual(BigInt(t.round_id), firstRoundNumber)
       }
       assert.deepStrictEqual(
-        telemetry.map(p => ({ _point: p.name, ...p.fields })),
+        telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
         [
           {
             _point: 'round',
@@ -348,7 +349,7 @@ describe('Round Tracker', () => {
       assert.deepStrictEqual(sparkRounds.map(r => r.id), ['1'])
       assert.strictEqual(sparkRounds[0].max_tasks_per_node, 15)
       assert.deepStrictEqual(
-        telemetry.map(p => ({ _point: p.name, ...p.fields })),
+        telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
         [
           {
             _point: 'round',
@@ -384,7 +385,7 @@ describe('Round Tracker', () => {
         )
         assert.strictEqual(retrievalTasks.length, BASELINE_TASKS_PER_ROUND)
         assert.deepStrictEqual(
-          telemetry.map(p => ({ _point: p.name, ...p.fields })),
+          telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
           [
             {
               _point: 'round',
@@ -426,7 +427,7 @@ describe('Round Tracker', () => {
         )
         assert.strictEqual(retrievalTasks.length, BASELINE_TASKS_PER_ROUND)
         assert.deepStrictEqual(
-          telemetry.map(p => ({ _point: p.name, ...p.fields })),
+          telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
           [
             {
               _point: 'round',
@@ -491,7 +492,7 @@ describe('Round Tracker', () => {
             [prevSparkRoundNumber]
           )
           assert.deepStrictEqual(
-            telemetry.map(p => ({ _point: p.name, ...p.fields })),
+            telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
             [
               {
                 _point: 'round',
@@ -635,7 +636,7 @@ describe('Round Tracker', () => {
       const contract = await createMeridianContract()
       const roundIndex = await contract.currentRoundIndex()
       const startEpoch = await getRoundStartEpoch(contract, roundIndex, 500)
-      assert.strictEqual(typeof startEpoch, 'number')
+      assert.strictEqual(typeof startEpoch, 'bigint')
     })
   })
 
@@ -645,7 +646,7 @@ describe('Round Tracker', () => {
       const contract = await createMeridianContract()
       const roundIndex = await contract.currentRoundIndex()
       const startEpoch = await getRoundStartEpochWithBackoff(contract, roundIndex)
-      assert.strictEqual(typeof startEpoch, 'number')
+      assert.strictEqual(typeof startEpoch, 'bigint')
     })
   })
 
@@ -660,7 +661,7 @@ describe('Round Tracker', () => {
       })
       assert.strictEqual(typeof sparkRoundNumber, 'bigint')
       assert.deepStrictEqual(
-        telemetry.map(p => ({ _point: p.name, ...p.fields })),
+        telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
         [
           {
             _point: 'round',

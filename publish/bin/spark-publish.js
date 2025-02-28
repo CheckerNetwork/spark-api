@@ -1,7 +1,8 @@
+/** @import { EthAddress } from '@glif/filecoin-address' */
 import '../lib/instrument.js'
 import * as Sentry from '@sentry/node'
 import assert from 'node:assert'
-import { newDelegatedEthAddress } from '@glif/filecoin-address'
+import { newDelegatedEthAddress, CoinType } from '@glif/filecoin-address'
 import timers from 'node:timers/promises'
 import { ethers } from 'ethers'
 import { spawn } from 'node:child_process'
@@ -39,7 +40,7 @@ const stuckTransactionsCanceller = createStuckTransactionsCanceller({ pgClient: 
 console.log(
   'Wallet address:',
   signer.address,
-  newDelegatedEthAddress(signer.address, 'f').toString()
+  newDelegatedEthAddress(/** @type {EthAddress} */ (signer.address), CoinType.MAIN).toString()
 )
 
 await Promise.all([
@@ -55,11 +56,11 @@ await Promise.all([
         {
           env: {
             ...process.env,
-            MIN_ROUND_LENGTH_SECONDS,
-            MAX_MEASUREMENTS_PER_ROUND,
             WALLET_SEED,
             W3UP_PRIVATE_KEY,
-            W3UP_PROOF
+            W3UP_PROOF,
+            MIN_ROUND_LENGTH_SECONDS: MIN_ROUND_LENGTH_SECONDS.toString(),
+            MAX_MEASUREMENTS_PER_ROUND: MAX_MEASUREMENTS_PER_ROUND.toString()
           }
         }
       )
@@ -70,7 +71,7 @@ await Promise.all([
         console.error(`Bad exit code: ${code}`)
         Sentry.captureMessage(`Bad exit code: ${code}`)
       }
-      const dt = new Date() - lastStart
+      const dt = new Date().getTime() - lastStart.getTime()
       console.log(`Done. This iteration took ${dt}ms.`)
       if (dt < minRoundLength) await timers.setTimeout(minRoundLength - dt)
     }

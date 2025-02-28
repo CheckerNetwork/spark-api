@@ -9,7 +9,7 @@ import {
   mapCurrentMeridianRoundToSparkRound,
   BASELINE_TASKS_PER_NODE
 } from '../lib/round-tracker.js'
-import { delegatedFromEthAddress } from '@glif/filecoin-address'
+import { delegatedFromEthAddress, CoinType } from '@glif/filecoin-address'
 import { createTelemetryRecorderStub } from '../../test-helpers/platform-test-helpers.js'
 
 const { DATABASE_URL } = process.env
@@ -79,7 +79,8 @@ describe('Routes', () => {
     server = http.createServer(handler)
     server.listen()
     await once(server, 'listening')
-    spark = `http://127.0.0.1:${server.address().port}`
+    const { port } = /** @type {import('node:net').AddressInfo} */ (server.address())
+    spark = `http://127.0.0.1:${port}`
   })
 
   after(async () => {
@@ -153,6 +154,7 @@ describe('Routes', () => {
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
+      /** @type {any} */
       const { id } = await createRequest.json()
 
       const { rows: [measurementRow] } = await client.query(`
@@ -209,6 +211,7 @@ describe('Routes', () => {
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
+      /** @type {any} */
       const { id } = await createRequest.json()
 
       const { rows: [measurementRow] } = await client.query(`
@@ -226,7 +229,7 @@ describe('Routes', () => {
 
       const measurement = {
         ...VALID_MEASUREMENT,
-        participantAddress: delegatedFromEthAddress(participantAddress, 'f')
+        participantAddress: delegatedFromEthAddress(participantAddress, CoinType.MAIN)
       }
 
       const createRequest = await fetch(`${spark}/measurements`, {
@@ -235,6 +238,7 @@ describe('Routes', () => {
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
+      /** @type {any} */
       const { id } = await createRequest.json()
 
       const { rows: [measurementRow] } = await client.query(`
@@ -252,7 +256,7 @@ describe('Routes', () => {
 
       const measurement = {
         ...VALID_MEASUREMENT,
-        participantAddress: `${delegatedFromEthAddress(participantAddress, 'f')}0`
+        participantAddress: `${delegatedFromEthAddress(participantAddress, CoinType.MAIN)}0`
       }
 
       const createRequest = await fetch(`${spark}/measurements`, {
@@ -280,6 +284,7 @@ describe('Routes', () => {
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
+      /** @type {any} */
       const { id } = await createRequest.json()
 
       const { rows: [measurementRow] } = await client.query(`
@@ -346,6 +351,7 @@ describe('Routes', () => {
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
+      /** @type {any} */
       const { id } = await createRequest.json()
 
       const { rows: [measurementRow] } = await client.query(`
@@ -375,6 +381,7 @@ describe('Routes', () => {
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
+      /** @type {any} */
       const { id } = await createRequest.json()
 
       const { rows: [measurementRow] } = await client.query(`
@@ -427,10 +434,12 @@ describe('Routes', () => {
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
+      /** @type {any} */
       const { id: measurementId } = await createRequest.json()
 
       const res = await fetch(`${spark}/measurements/${measurementId}`)
       await assertResponseStatus(res, 200)
+      /** @type {any} */
       const body = await res.json()
       assert.strictEqual(body.id, measurementId)
       assert.strictEqual(body.cid, measurement.cid)
@@ -493,6 +502,7 @@ describe('Routes', () => {
     it('returns details of the correct SPARK round', async () => {
       const res = await fetch(`${spark}/rounds/meridian/0xNEW/120`)
       await assertResponseStatus(res, 200)
+      /** @type {any} */
       const { retrievalTasks, ...details } = await res.json()
 
       assert.deepStrictEqual(details, {
@@ -513,6 +523,7 @@ describe('Routes', () => {
     it('returns details of a SPARK round managed by older contract version', async () => {
       const res = await fetch(`${spark}/rounds/meridian/0xOLD/10`)
       await assertResponseStatus(res, 200)
+      /** @type {any} */
       const { retrievalTasks, ...details } = await res.json()
 
       assert.deepStrictEqual(details, {
@@ -557,6 +568,7 @@ describe('Routes', () => {
     it('returns all properties of the current round after redirect', async () => {
       const res = await fetch(`${spark}/rounds/current`)
       await assertResponseStatus(res, 200)
+      /** @type {any} */
       const body = await res.json()
 
       assert.deepStrictEqual(Object.keys(body), [
@@ -605,6 +617,7 @@ describe('Routes', () => {
     it('returns all properties of the specified round', async () => {
       const res = await fetch(`${spark}/rounds/${currentSparkRoundNumber}`)
       await assertResponseStatus(res, 200)
+      /** @type {any} */
       const body = await res.json()
 
       assert.deepStrictEqual(Object.keys(body), [
@@ -643,12 +656,14 @@ describe('Routes', () => {
             error: console.error,
             request () {}
           },
+          dealIngestionAccessToken: VALID_DEAL_INGESTION_TOKEN,
           domain: 'foobar'
         })
         server = http.createServer(handler)
         server.listen()
         await once(server, 'listening')
-        const spark = `http://127.0.0.1:${server.address().port}`
+        const { port } = /** @type {import('node:net').AddressInfo} */ (server.address())
+        const spark = `http://127.0.0.1:${port}`
         const res = await fetch(
           `${spark}/rounds/${currentSparkRoundNumber}`,
           { redirect: 'manual' }

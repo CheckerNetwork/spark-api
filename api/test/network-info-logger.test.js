@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { createTelemetryRecorderStub } from '../../test-helpers/platform-test-helpers.js'
+import { createTelemetryRecorderStub, getPointName } from '../../test-helpers/platform-test-helpers.js'
 import { clearNetworkInfoStationIdsSeen, logNetworkInfo } from '../lib/network-info-logger.js'
 
 describe('logNetworkInfo', () => {
@@ -13,13 +13,25 @@ describe('logNetworkInfo', () => {
     'cf-region-code': 'region-code1',
     'cf-timezone': 'timezone1'
   }
-  const headers2 = {}
-  for (const key in headers1) {
-    headers2[key] = headers1[key].slice(0, -1) + '2'
+  const headers2 = {
+    'cf-ipcity': 'city2',
+    'cf-ipcountry': 'country2',
+    'cf-ipcontinent': 'continent2',
+    'cf-iplongitude': 'longitude2',
+    'cf-iplatitude': 'latitude2',
+    'cf-region': 'region2',
+    'cf-region-code': 'region-code2',
+    'cf-timezone': 'timezone2'
   }
-  const headers3 = {}
-  for (const key in headers1) {
-    headers3[key] = headers1[key].slice(0, -1) + '3'
+  const headers3 = {
+    'cf-ipcity': 'city3',
+    'cf-ipcountry': 'country3',
+    'cf-ipcontinent': 'continent3',
+    'cf-iplongitude': 'longitude3',
+    'cf-iplatitude': 'latitude3',
+    'cf-region': 'region3',
+    'cf-region-code': 'region-code3',
+    'cf-timezone': 'timezone3'
   }
 
   beforeEach(async () => {
@@ -44,7 +56,7 @@ describe('logNetworkInfo', () => {
     }
 
     assert.deepStrictEqual(
-      telemetry.map(p => ({ _point: p.name, ...p.fields })),
+      telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
       [
         { _point: 'network-info', ...expectedFields1 },
         { _point: 'network-info', ...expectedFields2 }
@@ -67,7 +79,7 @@ describe('logNetworkInfo', () => {
 
     assert.strictEqual(telemetry.length, 2)
     assert.deepStrictEqual(
-      telemetry.map(p => ({ _point: p.name, 'cf-ipcity': p.fields['cf-ipcity'] })),
+      telemetry.map(p => ({ _point: getPointName(p), 'cf-ipcity': p.fields['cf-ipcity'] })),
       [
         { _point: 'network-info', 'cf-ipcity': '"city1"' },
         { _point: 'network-info', 'cf-ipcity': '"city3"' }

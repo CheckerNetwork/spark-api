@@ -27,6 +27,7 @@ assert(WALLET_SEED, 'WALLET_SEED required')
 assert(W3UP_PRIVATE_KEY, 'W3UP_PRIVATE_KEY required')
 assert(W3UP_PROOF, 'W3UP_PROOF required')
 
+const maxMeasurements = Number(MAX_MEASUREMENTS_PER_ROUND)
 const client = new pg.Pool({ connectionString: DATABASE_URL })
 
 async function parseProof (data) {
@@ -64,7 +65,7 @@ try {
     ieContract,
     recordTelemetry: recordPublishTelemetry,
     stuckTransactionsCanceller,
-    maxMeasurements: MAX_MEASUREMENTS_PER_ROUND
+    maxMeasurements
   })
 } finally {
   // Ensure telemetry has been submitted before exiting

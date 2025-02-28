@@ -4,9 +4,9 @@ import { base64url } from 'multiformats/bases/base64'
 const IPV4_REGEX = /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.){3}(25[0-5]|(2[0-4]|1\d|[1-9]|)\d)$/
 
 /**
- * @param {import('pg').Client} client
+ * @param {import('pg').Client} pgClient
  * @param {import('node:http').IncomingMessage} req
- * @returns {string}
+ * @returns {Promise<string>}
  */
 export const mapRequestToInetGroup = async (pgClient, req) => {
   const subnet = mapRequestToSubnet(req)
@@ -16,7 +16,7 @@ export const mapRequestToInetGroup = async (pgClient, req) => {
 }
 
 /**
- * @param {import('pg').Client} client
+ * @param {import('pg').Client} pgClient
  * @param {string} subnet
  * @returns {Promise<string>}
  */
@@ -77,13 +77,13 @@ export const mapRequestToSubnet = (req) => {
   let addr = req.socket.remoteAddress
 
   const flyClientAddr = req.headers['fly-client-ip']
-  if (flyClientAddr) addr = flyClientAddr
+  if (flyClientAddr && typeof flyClientAddr === 'string') addr = flyClientAddr
 
   // TODO accept the value in this header only when the request is coming from Cloudflare
   // Check that `req.socket.remoteAddress` matches one of the well-known Cloudflare's addresses
   // See https://www.cloudflare.com/en-gb/ips/
   const cfAddr = req.headers['cf-connecting-ip']
-  if (cfAddr) addr = cfAddr
+  if (cfAddr && typeof cfAddr === 'string') addr = cfAddr
 
   if (!addr) return undefined
 
