@@ -1,3 +1,4 @@
+/** @import { EthAddress } from '@glif/filecoin-address' */
 import '../lib/instrument.js'
 import * as Sentry from '@sentry/node'
 import assert from 'node:assert'
@@ -39,7 +40,7 @@ const stuckTransactionsCanceller = createStuckTransactionsCanceller({ pgClient: 
 console.log(
   'Wallet address:',
   signer.address,
-  newDelegatedEthAddress(/** @type {import('@glif/filecoin-address').EthAddress} */ (signer.address), CoinType.MAIN).toString()
+  newDelegatedEthAddress(/** @type {EthAddress} */ (signer.address), CoinType.MAIN).toString()
 )
 
 await Promise.all([
