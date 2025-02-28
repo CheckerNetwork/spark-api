@@ -1,7 +1,7 @@
 import '../lib/instrument.js'
 import * as Sentry from '@sentry/node'
 import assert from 'node:assert'
-import { newDelegatedEthAddress } from '@glif/filecoin-address'
+import { newDelegatedEthAddress, CoinType } from '@glif/filecoin-address'
 import timers from 'node:timers/promises'
 import { ethers } from 'ethers'
 import { spawn } from 'node:child_process'
@@ -39,8 +39,7 @@ const stuckTransactionsCanceller = createStuckTransactionsCanceller({ pgClient: 
 console.log(
   'Wallet address:',
   signer.address,
-  // @ts-ignore `signer.address` is declared as `string` but it's actually an `ethers.EthAddress`
-  newDelegatedEthAddress(signer.address, 'f').toString()
+  newDelegatedEthAddress(/** @type {import('@glif/filecoin-address').EthAddress} */ (signer.address), CoinType.MAIN).toString()
 )
 
 await Promise.all([
