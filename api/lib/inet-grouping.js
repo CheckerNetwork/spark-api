@@ -1,63 +1,64 @@
 import { base64url } from 'multiformats/bases/base64'
+import { withDb } from '../bin/spark.js'
 
 // See https://stackoverflow.com/a/36760050/69868
 const IPV4_REGEX = /^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.){3}(25[0-5]|(2[0-4]|1\d|[1-9]|)\d)$/
 
 /**
- * @param {import('pg').Client} client
  * @param {import('node:http').IncomingMessage} req
- * @returns {string}
+ * @returns {Promise<string>}
  */
-export const mapRequestToInetGroup = async (pgClient, req) => {
+export const mapRequestToInetGroup = async (req) => {
   const subnet = mapRequestToSubnet(req)
   if (!subnet) return 'ipv6'
-  const group = await mapSubnetToInetGroup(pgClient, subnet)
+  const group = await mapSubnetToInetGroup(subnet)
   return group
 }
 
 /**
- * @param {import('pg').Client} client
  * @param {string} subnet
  * @returns {Promise<string>}
  */
-export const mapSubnetToInetGroup = async (pgClient, subnet) => {
-  const { rows: [found] } = await pgClient.query(
-    'SELECT id FROM inet_groups WHERE subnet = $1',
-    [subnet]
-  )
-  if (found) return found.id
+export const mapSubnetToInetGroup = async (subnet) => {
+  return await withDb(async (client) => {
+    const { rows: [found] } = await client.query(
+      'SELECT id FROM inet_groups WHERE subnet = $1',
+      [subnet]
+    )
+    if (found) return found.id
 
-  for (let remainingRetries = 5; remainingRetries > 0; remainingRetries--) {
-    const group = generateUniqueGroupId()
-    try {
-      // There is a race condition: between the time we looked up the existing group
-      // and the time we execute this query, a handler for a different request from
-      // the same subnet may have already defined the group for this subnet.
-      // Solution: when insert fails with a conflict in the group id, use that existing group
-      // instead of the value we generated ourselves.
-      //
-      // ON CONFLICT DO UPDATE is needed to tell PG to return the existing id on conflict
-      // ON CONFLICT DO NOTHING would not return the existing id on conflict
-      const { rows: [created] } = await pgClient.query(`
-        INSERT INTO inet_groups (id, subnet)
-        VALUES ($1, $2)
-        ON CONFLICT (subnet) DO UPDATE SET id = inet_groups.id
-        RETURNING id
-       `, [
-        group,
-        subnet
-      ])
-      return created.id
-    } catch (err) {
-      if (err.code === 23505 && err.constraint === 'inet_groups_pkey') {
-        // Retry with a different random id
-        continue
+    for (let remainingRetries = 5; remainingRetries > 0; remainingRetries--) {
+      const group = generateUniqueGroupId()
+      try {
+        // There is a race condition: between the time we looked up the existing group
+        // and the time we execute this query, a handler for a different request from
+        // the same subnet may have already defined the group for this subnet.
+        // Solution: when insert fails with a conflict in the group id, use that existing group
+        // instead of the value we generated ourselves.
+        //
+        // ON CONFLICT DO UPDATE is needed to tell PG to return the existing id on conflict
+        // ON CONFLICT DO NOTHING would not return the existing id on conflict
+        const { rows: [created] } = await client.query(`
+          INSERT INTO inet_groups (id, subnet)
+          VALUES ($1, $2)
+          ON CONFLICT (subnet) DO UPDATE SET id = inet_groups.id
+          RETURNING id
+         `, [
+          group,
+          subnet
+        ])
+        return created.id
+      } catch (err) {
+        if (err.code === 23505 && err.constraint === 'inet_groups_pkey') {
+          // Retry with a different random id
+          continue
+        }
+        throw err
       }
-      throw err
     }
-  }
-  // We have exhausted allowed attempts
-  throw new Error('Failed to generate a unique group id')
+    // We have exhausted allowed attempts
+    throw new Error('Failed to generate a unique group id')
+  })
 }
 
 /**

@@ -8,18 +8,18 @@ import { logNetworkInfo } from './lib/network-info-logger.js'
 import { recordNetworkInfoTelemetry } from '../common/telemetry.js'
 import { satisfies } from 'compare-versions'
 import { ethAddressFromDelegated } from '@glif/filecoin-address'
+import { withDb } from '../bin/spark.js' 
 
 /** @import {IncomingMessage, ServerResponse} from 'node:http' */
-/** @import pg from 'pg' */
 
 /*
  * @param {IncomingMessage} req
  * @param {ServerResponse} res
- * @param {pg.Client} client
+ * @param {Function} withDb - Database query function
  * @param {string} domain
  * @param {string} dealIngestionAccessToken
  */
-const handler = async (req, res, client, domain, dealIngestionAccessToken) => {
+const handler = async (req, res, withDb, domain, dealIngestionAccessToken) => {
   if (req.headers.host.split(':')[0] !== domain) {
     return redirect(req, res, `https://${domain}${req.url}`, 301)
   }
@@ -31,29 +31,29 @@ const handler = async (req, res, client, domain, dealIngestionAccessToken) => {
   } else if (segs[0] === 'retrievals' && req.method === 'GET') {
     assert.fail(410, 'This API endpoint is no longer supported.')
   } else if (segs[0] === 'measurements' && req.method === 'POST') {
-    await createMeasurement(req, res, client)
+    await createMeasurement(req, res, withDb)
   } else if (segs[0] === 'measurements' && req.method === 'GET') {
-    await getMeasurement(req, res, client, Number(segs[1]))
+    await getMeasurement(req, res, withDb, Number(segs[1]))
   } else if (segs[0] === 'rounds' && segs[1] === 'meridian' && req.method === 'GET') {
-    await getMeridianRoundDetails(req, res, client, segs[2], segs[3])
+    await getMeridianRoundDetails(req, res, withDb, segs[2], segs[3])
   } else if (segs[0] === 'rounds' && req.method === 'GET') {
-    await getRoundDetails(req, res, client, segs[1])
+    await getRoundDetails(req, res, withDb, segs[1])
   } else if (segs[0] === 'miner' && segs[1] && segs[2] === 'deals' && segs[3] === 'eligible' && segs[4] === 'summary' && req.method === 'GET') {
-    await getSummaryOfEligibleDealsForMiner(req, res, client, segs[1])
+    await getSummaryOfEligibleDealsForMiner(req, res, withDb, segs[1])
   } else if (segs[0] === 'client' && segs[1] && segs[2] === 'deals' && segs[3] === 'eligible' && segs[4] === 'summary' && req.method === 'GET') {
-    await getSummaryOfEligibleDealsForClient(req, res, client, segs[1])
+    await getSummaryOfEligibleDealsForClient(req, res, withDb, segs[1])
   } else if (segs[0] === 'allocator' && segs[1] && segs[2] === 'deals' && segs[3] === 'eligible' && segs[4] === 'summary' && req.method === 'GET') {
-    await getSummaryOfEligibleDealsForAllocator(req, res, client, segs[1])
+    await getSummaryOfEligibleDealsForAllocator(req, res, withDb, segs[1])
   } else if (segs[0] === 'inspect-request' && req.method === 'GET') {
     await inspectRequest(req, res)
   } else if (segs[0] === 'eligible-deals-batch' && req.method === 'POST') {
-    await ingestEligibleDeals(req, res, client, dealIngestionAccessToken)
+    await ingestEligibleDeals(req, res, withDb, dealIngestionAccessToken)
   } else {
     status(res, 404)
   }
 }
 
-const createMeasurement = async (req, res, client) => {
+const createMeasurement = async (req, res, withDb) => {
   const body = await getRawBody(req, { limit: '100kb' })
   const measurement = JSON.parse(body)
   validate(measurement, 'sparkVersion', { type: 'string', required: false })
@@ -98,10 +98,11 @@ const createMeasurement = async (req, res, client) => {
   validate(measurement, 'stationId', { type: 'string', required: true })
   assert(measurement.stationId.match(/^[0-9a-fA-F]{88}$/), 400, 'Invalid Station ID')
 
-  const inetGroup = await mapRequestToInetGroup(client, req)
+  const inetGroup = await mapRequestToInetGroup(req)
   logNetworkInfo(req.headers, measurement.stationId, recordNetworkInfoTelemetry)
 
-  const { rows } = await client.query(`
+  const result = await withDb(async (client) => {
+    const { rows } = await client.query(`
       INSERT INTO measurements (
         spark_version,
         zinnia_version,
@@ -134,41 +135,49 @@ const createMeasurement = async (req, res, client) => {
       LIMIT 1
       RETURNING id
     `, [
-    measurement.sparkVersion,
-    measurement.zinniaVersion,
-    measurement.cid,
-    measurement.providerAddress,
-    measurement.protocol,
-    measurement.participantAddress,
-    measurement.stationId,
-    measurement.timeout || false,
-    parseOptionalDate(measurement.startAt),
-    measurement.statusCode,
-    measurement.headStatusCode,
-    parseOptionalDate(measurement.firstByteAt),
-    parseOptionalDate(measurement.endAt),
-    measurement.byteLength,
-    measurement.attestation,
-    inetGroup,
-    measurement.carTooLarge ?? false,
-    measurement.carChecksum,
-    measurement.indexerResult,
-    measurement.minerId,
-    measurement.providerId
-  ])
-  json(res, { id: rows[0].id })
+      measurement.sparkVersion,
+      measurement.zinniaVersion,
+      measurement.cid,
+      measurement.providerAddress,
+      measurement.protocol,
+      measurement.participantAddress,
+      measurement.stationId,
+      measurement.timeout || false,
+      parseOptionalDate(measurement.startAt),
+      measurement.statusCode,
+      measurement.headStatusCode,
+      parseOptionalDate(measurement.firstByteAt),
+      parseOptionalDate(measurement.endAt),
+      measurement.byteLength,
+      measurement.attestation,
+      inetGroup,
+      measurement.carTooLarge ?? false,
+      measurement.carChecksum,
+      measurement.indexerResult,
+      measurement.minerId,
+      measurement.providerId
+    ])
+    return rows[0]
+  })
+  
+  json(res, { id: result.id }) 
 }
 
-const getMeasurement = async (req, res, client, measurementId) => {
+const getMeasurement = async (req, res, withDb, measurementId) => {
   assert(!Number.isNaN(measurementId), 400, 'Invalid RetrievalResult ID')
-  const { rows: [resultRow] } = await client.query(`
-    SELECT *
-    FROM measurements
-    WHERE id = $1
-  `, [
-    measurementId
-  ])
+  
+  const resultRow = await withDb(async (client) => {
+    const { rows } = await client.query(`
+      SELECT *
+      FROM measurements
+      WHERE id = $1
+    `, [measurementId])
+    
+    return rows[0]
+  })
+  
   assert(resultRow, 404, 'Measurement Not Found')
+  
   json(res, {
     id: resultRow.id,
     cid: resultRow.cid,
@@ -194,13 +203,17 @@ const getMeasurement = async (req, res, client, measurementId) => {
   })
 }
 
-const getRoundDetails = async (req, res, client, roundParam) => {
+const getRoundDetails = async (req, res, withDb, roundParam) => {
   if (roundParam === 'current') {
-    const { rows: [round] } = await client.query(`
-      SELECT meridian_address, meridian_round FROM spark_rounds
-      ORDER BY id DESC
-      LIMIT 1
-    `)
+    const round = await withDb(async (client) => {
+      const { rows } = await client.query(`
+        SELECT meridian_address, meridian_round FROM spark_rounds
+        ORDER BY id DESC
+        LIMIT 1
+      `)
+      return rows[0]
+    })
+
     assert(!!round, 'No rounds found in "spark_rounds" table.')
     const meridianContractAddress = round.meridian_address
     const meridianRoundIndex = BigInt(round.meridian_round)
@@ -219,17 +232,26 @@ const getRoundDetails = async (req, res, client, roundParam) => {
 
   // TODO(bajtos) Remove this branch and return 404
   const roundNumber = parseRoundNumber(roundParam)
-  await replyWithDetailsForRoundNumber(res, client, roundNumber)
+  await replyWithDetailsForRoundNumber(res, withDb, roundNumber)
 }
 
-const replyWithDetailsForRoundNumber = async (res, client, roundNumber) => {
-  const { rows: [round] } = await client.query('SELECT * FROM spark_rounds WHERE id = $1', [roundNumber])
-  if (!round) {
+const replyWithDetailsForRoundNumber = async (res, withDb, roundNumber) => {
+  const data = await withDb(async (client) => {
+    const { rows: [round] } = await client.query('SELECT * FROM spark_rounds WHERE id = $1', [roundNumber])
+    if (!round) {
+      return null
+    }
+
+    const { rows: tasks } = await client.query('SELECT * FROM retrieval_tasks WHERE round_id = $1', [round.id])
+    return { round, tasks }
+  })
+  
+  if (!data) {
     return status(res, 404)
   }
-
-  const { rows: tasks } = await client.query('SELECT * FROM retrieval_tasks WHERE round_id = $1', [round.id])
-
+  
+  const { round, tasks } = data
+  
   json(res, {
     roundId: round.id.toString(),
     maxTasksPerNode: round.max_tasks_per_node,
@@ -243,25 +265,35 @@ const replyWithDetailsForRoundNumber = async (res, client, roundNumber) => {
 
 const ONE_YEAR_IN_SECONDS = 365 * 24 * 3600
 
-const getMeridianRoundDetails = async (_req, res, client, meridianAddress, meridianRound) => {
+const getMeridianRoundDetails = async (_req, res, withDb, meridianAddress, meridianRound) => {
   meridianRound = BigInt(meridianRound)
 
-  const { rows: [round] } = await client.query(`
-    SELECT * FROM spark_rounds
-    WHERE meridian_address = $1 and meridian_round = $2
-    `, [
-    meridianAddress,
-    meridianRound
-  ])
-  if (!round) {
+  const data = await withDb(async (client) => {
+    const { rows: [round] } = await client.query(`
+      SELECT * FROM spark_rounds
+      WHERE meridian_address = $1 and meridian_round = $2
+      `, [
+      meridianAddress,
+      meridianRound
+    ])
+    
+    if (!round) {
+      return null
+    }
+
+    const { rows: tasks } = await client.query('SELECT * FROM retrieval_tasks WHERE round_id = $1', [round.id])
+    return { round, tasks }
+  })
+  
+  if (!data) {
     // IMPORTANT: This response must not be cached for too long to handle the case when the client
     // requested details of a future round.
     res.setHeader('cache-control', 'max-age=60')
     return status(res, 404)
   }
-
-  const { rows: tasks } = await client.query('SELECT * FROM retrieval_tasks WHERE round_id = $1', [round.id])
-
+  
+  const { round, tasks } = data
+  
   res.setHeader('cache-control', `public, max-age=${ONE_YEAR_IN_SECONDS}, immutable`)
   json(res, {
     roundId: round.id.toString(),
@@ -310,16 +342,17 @@ const errorHandler = (res, err, logger) => {
   }
 }
 
-const getSummaryOfEligibleDealsForMiner = async (_req, res, client, minerId) => {
-  /** @type {{rows: {client_id: string; deal_count: number}[]}} */
-  const { rows } = await client.query(`
-    SELECT client_id, COUNT(payload_cid)::INTEGER as deal_count FROM eligible_deals
-    WHERE miner_id = $1 AND expires_at > now()
-    GROUP BY client_id
-    ORDER BY deal_count DESC, client_id ASC
-    `, [
-    minerId
-  ])
+const getSummaryOfEligibleDealsForMiner = async (_req, res, withDb, minerId) => {
+  const rows = await withDb(async (client) => {
+    const { rows } = await client.query(`
+      SELECT client_id, COUNT(payload_cid)::INTEGER as deal_count FROM eligible_deals
+      WHERE miner_id = $1 AND expires_at > now()
+      GROUP BY client_id
+      ORDER BY deal_count DESC, client_id ASC
+      `, [minerId])
+    
+    return rows
+  })
 
   // Cache the response for 6 hours
   res.setHeader('cache-control', `max-age=${6 * 3600}`)
@@ -337,16 +370,17 @@ const getSummaryOfEligibleDealsForMiner = async (_req, res, client, minerId) => 
   json(res, body)
 }
 
-const getSummaryOfEligibleDealsForClient = async (_req, res, client, clientId) => {
-  /** @type {{rows: {miner_id: string; deal_count: number}[]}} */
-  const { rows } = await client.query(`
-  SELECT miner_id, COUNT(payload_cid)::INTEGER as deal_count FROM eligible_deals
-  WHERE client_id = $1 AND expires_at > now()
-  GROUP BY miner_id
-  ORDER BY deal_count DESC, miner_id ASC
-  `, [
-    clientId
-  ])
+const getSummaryOfEligibleDealsForClient = async (_req, res, withDb, clientId) => {
+  const rows = await withDb(async (client) => {
+    const { rows } = await client.query(`
+      SELECT miner_id, COUNT(payload_cid)::INTEGER as deal_count FROM eligible_deals
+      WHERE client_id = $1 AND expires_at > now()
+      GROUP BY miner_id
+      ORDER BY deal_count DESC, miner_id ASC
+      `, [clientId])
+    
+    return rows
+  })
 
   // Cache the response for 6 hours
   res.setHeader('cache-control', `max-age=${6 * 3600}`)
@@ -362,18 +396,19 @@ const getSummaryOfEligibleDealsForClient = async (_req, res, client, clientId) =
   json(res, body)
 }
 
-const getSummaryOfEligibleDealsForAllocator = async (_req, res, client, allocatorId) => {
-  /** @type {{rows: {client_id: string; deal_count: number}[]}} */
-  const { rows } = await client.query(`
-    SELECT ac.client_id, COUNT(payload_cid)::INTEGER as deal_count
-    FROM allocator_clients ac
-    LEFT JOIN eligible_deals rd ON ac.client_id = rd.client_id
-    WHERE ac.allocator_id = $1 AND expires_at > now()
-    GROUP BY ac.client_id
-    ORDER BY deal_count DESC, ac.client_id ASC
-    `, [
-    allocatorId
-  ])
+const getSummaryOfEligibleDealsForAllocator = async (_req, res, withDb, allocatorId) => {
+  const rows = await withDb(async (client) => {
+    const { rows } = await client.query(`
+      SELECT ac.client_id, COUNT(payload_cid)::INTEGER as deal_count
+      FROM allocator_clients ac
+      LEFT JOIN eligible_deals rd ON ac.client_id = rd.client_id
+      WHERE ac.allocator_id = $1 AND expires_at > now()
+      GROUP BY ac.client_id
+      ORDER BY deal_count DESC, ac.client_id ASC
+      `, [allocatorId])
+    
+    return rows
+  })
 
   // Cache the response for 6 hours
   res.setHeader('cache-control', `max-age=${6 * 3600}`)
@@ -402,10 +437,10 @@ export const inspectRequest = async (req, res) => {
 /**
  * @param {IncomingMessage} req
  * @param {ServerResponse} res
- * @param {pg.Client} client
+ * @param {Function} withDb - Function to execute database queries
  * @param {string} dealIngestionAccessToken
  */
-export const ingestEligibleDeals = async (req, res, client, dealIngestionAccessToken) => {
+export const ingestEligibleDeals = async (req, res, withDb, dealIngestionAccessToken) => {
   if (req.headers.authorization !== `Bearer ${dealIngestionAccessToken}`) {
     res.statusCode = 403
     res.end('Unauthorized')
@@ -424,31 +459,34 @@ export const ingestEligibleDeals = async (req, res, client, dealIngestionAccessT
     validate(d, 'expiresAt', { type: 'date', required: true })
   }
 
-  const { rowCount: ingested } = await client.query(`
-    INSERT INTO eligible_deals (
-      client_id,
-      miner_id,
-      piece_cid,
-      piece_size,
-      payload_cid,
-      expires_at,
-      sourced_from_f05_state
-    ) VALUES (
-      unnest($1::TEXT[]),
-      unnest($2::TEXT[]),
-      unnest($3::TEXT[]),
-      unnest($4::BIGINT[]),
-      unnest($5::TEXT[]),
-      unnest($6::DATE[]),
-      false
-    ) ON CONFLICT DO NOTHING`, [
-    deals.map(d => d.clientId),
-    deals.map(d => d.minerId),
-    deals.map(d => d.pieceCid),
-    deals.map(d => d.pieceSize),
-    deals.map(d => d.payloadCid),
-    deals.map(d => d.expiresAt)
-  ])
+  const ingested = await withDb(async (client) => {
+    const { rowCount } = await client.query(`
+      INSERT INTO eligible_deals (
+        client_id,
+        miner_id,
+        piece_cid,
+        piece_size,
+        payload_cid,
+        expires_at,
+        sourced_from_f05_state
+      ) VALUES (
+        unnest($1::TEXT[]),
+        unnest($2::TEXT[]),
+        unnest($3::TEXT[]),
+        unnest($4::BIGINT[]),
+        unnest($5::TEXT[]),
+        unnest($6::DATE[]),
+        false
+      ) ON CONFLICT DO NOTHING`, [
+      deals.map(d => d.clientId),
+      deals.map(d => d.minerId),
+      deals.map(d => d.pieceCid),
+      deals.map(d => d.pieceSize),
+      deals.map(d => d.payloadCid),
+      deals.map(d => d.expiresAt)
+    ])
+    return rowCount
+  })
 
   json(res, {
     ingested,
@@ -457,7 +495,7 @@ export const ingestEligibleDeals = async (req, res, client, dealIngestionAccessT
 }
 
 export const createHandler = async ({
-  client,
+  withDb, 
   logger,
   dealIngestionAccessToken,
   domain
@@ -465,7 +503,7 @@ export const createHandler = async ({
   return (req, res) => {
     const start = new Date()
     logger.request(`${req.method} ${req.url} ...`)
-    handler(req, res, client, domain, dealIngestionAccessToken)
+    handler(req, res, withDb, domain, dealIngestionAccessToken)
       .catch(err => errorHandler(res, err, logger))
       .then(() => {
         logger.request(`${req.method} ${req.url} ${res.statusCode} (${new Date() - start}ms)`)

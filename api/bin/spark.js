@@ -8,6 +8,8 @@ import { startRoundTracker } from '../lib/round-tracker.js'
 import { migrate } from '../../migrations/index.js'
 import { clearNetworkInfoStationIdsSeen } from '../lib/network-info-logger.js'
 import { recordNetworkInfoTelemetry } from '../../common/telemetry.js'
+import Fastify from 'fastify'
+import fastifyPostgres from '@fastify/postgres'
 
 const {
   PORT = 8080,
@@ -24,27 +26,41 @@ const {
 // The same token is configured in Fly.io secrets for the deal-observer service too.
 assert(DEAL_INGESTER_TOKEN, 'DEAL_INGESTER_TOKEN is required')
 
-const client = new pg.Pool({
+const fastifyApp = Fastify({ logger: false })
+
+// Configure the PostgreSQL connection with @fastify/postgres
+await fastifyApp.register(fastifyPostgres, {
   connectionString: DATABASE_URL,
-  // allow the pool to close all connections and become empty
-  min: 0,
-  // this values should correlate with service concurrency hard_limit configured in fly.toml
-  // and must take into account the connection limit of our PG server, see
-  // https://fly.io/docs/postgres/managing/configuration-tuning/
-  max: 150,
-  // close connections that haven't been used for one second
-  idleTimeoutMillis: 1000,
-  // automatically close connections older than 60 seconds
-  maxLifetimeSeconds: 60
+  pool: {
+    min: 0,
+    max: 150,
+    idleTimeoutMillis: 1000,
+    maxLifetimeSeconds: 60
+  }
 })
 
-client.on('error', err => {
-  // Prevent crashing the process on idle client errors, the pool will recover
-  // itself. If all connections are lost, the process will still crash.
-  // https://github.com/brianc/node-postgres/issues/1324#issuecomment-308778405
-  console.error('An idle client has experienced an error', err.stack)
+// Helper function for database queries
+export const withDb = async (queryFn) => {
+  const client = await fastifyApp.pg.connect()
+  try {
+    return await queryFn(client)
+  } finally {
+    client.release()
+  }
+}
+
+// Run database migrations using the @fastify/postgres client
+await withDb(async (client) => {
+  await migrate(client)
 })
-await migrate(client)
+
+
+// client.on('error', err => {
+//   // Prevent crashing the process on idle client errors, the pool will recover
+//   // itself. If all connections are lost, the process will still crash.
+//   // https://github.com/brianc/node-postgres/issues/1324#issuecomment-308778405
+//   console.error('An idle client has experienced an error', err.stack)
+// })
 
 console.log('Initializing round tracker...')
 const start = Date.now()
@@ -61,6 +77,7 @@ try {
   )
 } catch (err) {
   console.error('Cannot obtain the current Spark round number:', err)
+  await fastifyApp.close() // Close database connections
   process.exit(1)
 }
 
