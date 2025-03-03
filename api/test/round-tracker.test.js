@@ -627,6 +627,68 @@ describe('Round Tracker', () => {
           }
         ])
       })
+
+      it('should handle single allocator with multiple clients correctly', async () => {
+        // Insert test data with one allocator having multiple clients
+        await pgClient.query(`
+          INSERT INTO eligible_deals (payload_cid, miner_id, client_id, expires_at)
+          VALUES 
+            ('bafyTest', 'f04000', 'clientA1', NOW()'),
+            ('bafyTest', 'f04000', 'clientA2', NOW()'),
+            ('bafyTest', 'f04000', 'clientA3', NOW()')
+        `)
+
+        await pgClient.query(`
+          INSERT INTO allocator_clients (client_id, allocator_id)
+          VALUES 
+            ('clientA1', 'allocator'),
+            ('clientA2', 'allocator'),
+            ('clientA3', 'allocator')
+        `)
+
+        const roundNumber = 996n
+        await defineTasksForRound(pgClient, roundNumber, 1)
+
+        // Verify results
+        const { rows } = await pgClient.query('SELECT * FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
+
+        assert.strictEqual(rows.length, 1, 'Should create one task')
+        assert.strictEqual(rows[0].cid, 'bafyTest', 'Should use the right CID')
+        assert.strictEqual(rows[0].clients.length, 3, 'Should have 3 clients')
+        assert.strictEqual(rows[0].allocators.length, 1, 'Should have 1 allocator')
+        assert.strictEqual(rows[0].allocators[0], 'allocator', 'Should have the correct allocator')
+      })
+
+      it('should handle multiple allocators for a single client correctly', async () => {
+        // Insert test data with one client having multiple allocators
+        await pgClient.query(`
+          INSERT INTO eligible_deals (payload_cid, miner_id, client_id, expires_at)
+          VALUES ('bafyTest', 'f05000', 'client', NOW()')
+        `)
+
+        await pgClient.query(`
+          INSERT INTO allocator_clients (client_id, allocator_id)
+          VALUES 
+            ('client', 'allocator1'),
+            ('client', 'allocator2'),
+            ('client', 'allocator3')
+        `)
+
+        const roundNumber = 995n
+        await defineTasksForRound(pgClient, roundNumber, 1)
+
+        // Verify results
+        const { rows } = await pgClient.query('SELECT * FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
+
+        assert.strictEqual(rows.length, 1, 'Should create one task')
+        assert.strictEqual(rows[0].cid, 'bafyTest', 'Should use the right CID')
+        assert.strictEqual(rows[0].clients.length, 1, 'Should have 1 client')
+        assert.strictEqual(rows[0].clients[0], 'client', 'Should have the correct client')
+        assert.strictEqual(rows[0].allocators.length, 3, 'Should have 3 allocators')
+        assert(rows[0].allocators.includes('allocator1'), 'Should include allocator1')
+        assert(rows[0].allocators.includes('allocator2'), 'Should include allocator2')
+        assert(rows[0].allocators.includes('allocator3'), 'Should include allocator3')
+      })
     })
   })
 
