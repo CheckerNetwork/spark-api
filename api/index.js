@@ -271,6 +271,7 @@ const getMeridianRoundDetails = async (_req, res, client, meridianAddress, merid
       cid: t.cid,
       minerId: t.miner_id,
       clients: t.clients,
+      allocators: t.allocators,
       // We are preserving these fields to make older rounds still verifiable
       providerAddress: fixNullToUndefined(t.provider_address),
       protocol: fixNullToUndefined(t.protocol)
