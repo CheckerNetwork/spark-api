@@ -690,8 +690,8 @@ describe('Round Tracker', () => {
         // Clean up
         await pgClient.query('DELETE FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
         await pgClient.query('DELETE FROM spark_rounds WHERE id = $1', [roundNumber])
-        await pgClient.query("DELETE FROM eligible_deals WHERE payload_cid LIKE 'bafyTest%'")
-        await pgClient.query("DELETE FROM allocator_clients WHERE client_id LIKE 'clientA%'")
+        await pgClient.query("DELETE FROM eligible_deals WHERE miner_id LIKE 'f002%' AND client_id LIKE 'clientA%' AND piece_cid LIKE 'baga%' AND piece_size = 1")
+        await pgClient.query("DELETE FROM allocator_clients WHERE client_id LIKE 'client%' AND allocator_id = 'allocator'")
       })
 
       it('should handle multiple allocators for a single client correctly', async () => {
@@ -749,8 +749,8 @@ describe('Round Tracker', () => {
         // Clean up
         await pgClient.query('DELETE FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
         await pgClient.query('DELETE FROM spark_rounds WHERE id = $1', [roundNumber])
-        await pgClient.query("DELETE FROM eligible_deals WHERE payload_cid LIKE 'bafyTest%'")
-        await pgClient.query("DELETE FROM allocator_clients WHERE client_id = 'client'")
+        await pgClient.query("DELETE FROM eligible_deals WHERE miner_id LIKE 'f003%' AND client_id = 'client' AND piece_cid LIKE 'baga%' AND piece_size = 1")
+        await pgClient.query("DELETE FROM allocator_clients WHERE client_id = 'client' AND allocator_id LIKE 'allocator%'")
       })
     })
   })
