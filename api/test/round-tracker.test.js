@@ -578,6 +578,11 @@ describe('Round Tracker', () => {
         `)
       })
 
+      beforeEach(async () => {
+        await pgClient.query('DELETE FROM allocator_clients')
+        await pgClient.query('DELETE FROM spark_rounds')
+      })
+
       it('merges duplicate clients', async () => {
         // Delete any eligible deals created by previous test runs
         await pgClient.query(`
