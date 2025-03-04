@@ -630,7 +630,7 @@ describe('Round Tracker', () => {
         // Clean up
         await pgClient.query('DELETE FROM retrieval_tasks WHERE round_id = $1', [roundId])
         await pgClient.query('DELETE FROM spark_rounds WHERE id = $1', [roundId])
-        await pgClient.query('DELETE FROM eligible_deals WHERE miner_id LIKE $1', ['f001%'])
+        await pgClient.query("DELETE FROM eligible_deals WHERE miner_id LIKE 'f001%' AND client_id = 'f0050' AND piece_cid LIKE 'baga%' AND piece_size = 1")
       })
 
       it('should handle single allocator with multiple clients correctly', async () => {
