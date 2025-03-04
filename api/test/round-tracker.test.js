@@ -626,6 +626,131 @@ describe('Round Tracker', () => {
             clients: ['f0050']
           }
         ])
+
+        // Clean up
+        await pgClient.query('DELETE FROM retrieval_tasks WHERE round_id = $1', [roundId])
+        await pgClient.query('DELETE FROM spark_rounds WHERE id = $1', [roundId])
+        await pgClient.query("DELETE FROM eligible_deals WHERE miner_id LIKE 'f001%' AND client_id = 'f0050' AND piece_cid LIKE 'baga%' AND piece_size = 1")
+      })
+
+      it('should handle single allocator with multiple clients correctly', async () => {
+        // Insert test data with one allocator having multiple clients
+        await pgClient.query(`
+          INSERT INTO eligible_deals
+          (miner_id, client_id, piece_cid, piece_size, payload_cid, expires_at)
+          VALUES
+          ('f0020', 'clientA1', 'baga1', 1, 'bafkTest', NOW() + INTERVAL '1 year'),
+          ('f0021', 'clientA2', 'baga2', 1, 'bafkTest', NOW() + INTERVAL '1 year'),
+          ('f0022', 'clientA3', 'baga3', 1, 'bafkTest', NOW() + INTERVAL '1 year')
+        `)
+
+        await pgClient.query(`
+          INSERT INTO allocator_clients (client_id, allocator_id)
+          VALUES 
+            ('clientA1', 'allocator'),
+            ('clientA2', 'allocator'),
+            ('clientA3', 'allocator')
+        `)
+
+        const roundNumber = 10024n
+        await pgClient.query(`
+          INSERT INTO spark_rounds
+          (id, created_at, meridian_address, meridian_round, start_epoch, max_tasks_per_node)
+          VALUES
+          ($1, NOW(), '0x1a', 1, 1, 15)
+        `, [
+          roundNumber
+        ])
+
+        await defineTasksForRound(pgClient, roundNumber, 10)
+
+        // Verify results
+        const { rows: tasks } = await pgClient.query('SELECT miner_id, cid, clients, allocators FROM retrieval_tasks WHERE round_id = $1 AND miner_id LIKE $2', [roundNumber, 'f002%'])
+        assert.deepStrictEqual(tasks, [
+          {
+            cid: 'bafkTest',
+            miner_id: 'f0020',
+            clients: ['clientA1'],
+            allocators: ['allocator']
+          },
+          {
+            cid: 'bafkTest',
+            miner_id: 'f0021',
+            clients: ['clientA2'],
+            allocators: ['allocator']
+          },
+          {
+            cid: 'bafkTest',
+            miner_id: 'f0022',
+            clients: ['clientA3'],
+            allocators: ['allocator']
+          }
+        ])
+
+        // Clean up
+        await pgClient.query('DELETE FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
+        await pgClient.query('DELETE FROM spark_rounds WHERE id = $1', [roundNumber])
+        await pgClient.query("DELETE FROM eligible_deals WHERE miner_id LIKE 'f002%' AND client_id LIKE 'clientA%' AND piece_cid LIKE 'baga%' AND piece_size = 1")
+        await pgClient.query("DELETE FROM allocator_clients WHERE client_id LIKE 'client%' AND allocator_id = 'allocator'")
+      })
+
+      it('should handle multiple allocators for a single client correctly', async () => {
+        // Insert test data with one client having multiple allocators
+        await pgClient.query(`
+          INSERT INTO eligible_deals
+          (miner_id, client_id, piece_cid, piece_size, payload_cid, expires_at)
+          VALUES
+          ('f0030', 'client', 'baga1', 1, 'bafkTest', NOW() + INTERVAL '1 year'),
+          ('f0031', 'client', 'baga2', 1, 'bafkTest', NOW() + INTERVAL '1 year'),
+          ('f0032', 'client', 'baga3', 1, 'bafkTest', NOW() + INTERVAL '1 year')
+        `)
+
+        await pgClient.query(`
+          INSERT INTO allocator_clients (client_id, allocator_id)
+          VALUES 
+            ('client', 'allocator1'),
+            ('client', 'allocator2'),
+            ('client', 'allocator3')
+        `)
+        const roundNumber = 10025n
+        await pgClient.query(`
+          INSERT INTO spark_rounds
+          (id, created_at, meridian_address, meridian_round, start_epoch, max_tasks_per_node)
+          VALUES
+          ($1, NOW(), '0x1a', 1, 1, 15)
+        `, [
+          roundNumber
+        ])
+        await defineTasksForRound(pgClient, roundNumber, 10)
+
+        // Verify results
+        const { rows: tasks } = await pgClient.query('SELECT miner_id, cid, clients, allocators FROM retrieval_tasks WHERE round_id = $1 AND miner_id LIKE $2', [roundNumber, 'f003%'])
+        assert.deepStrictEqual(tasks, [
+          {
+            cid: 'bafkTest',
+            miner_id: 'f0030',
+            clients: ['client'],
+            allocators: ['allocator1', 'allocator2', 'allocator3']
+          },
+          {
+            cid: 'bafkTest',
+            miner_id: 'f0031',
+            clients: ['client'],
+            allocators: ['allocator1', 'allocator2', 'allocator3']
+          },
+          {
+            cid: 'bafkTest',
+            miner_id: 'f0032',
+            clients: ['client'],
+            allocators: ['allocator1', 'allocator2', 'allocator3']
+          }
+        ])
+
+        // Clean up
+        await pgClient.query('DELETE FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
+        await pgClient.query('DELETE FROM spark_rounds WHERE id = $1', [roundNumber])
+        await pgClient.query("DELETE FROM eligible_deals WHERE miner_id LIKE 'f003%' AND client_id = 'client' AND piece_cid LIKE 'baga%' AND piece_size = 1")
+        await pgClient.query("DELETE FROM allocator_clients WHERE client_id = 'client' AND allocator_id LIKE 'allocator%'")
       })
     })
   })
