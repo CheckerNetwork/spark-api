@@ -662,7 +662,7 @@ describe('Round Tracker', () => {
           roundNumber
         ])
 
-        await defineTasksForRound(pgClient, roundNumber, 10)
+        await defineTasksForRound(pgClient, roundNumber, 3)
 
         // Verify results
         const { rows: tasks } = await pgClient.query('SELECT miner_id, cid, clients, allocators FROM retrieval_tasks WHERE round_id = $1 AND miner_id LIKE $2', [roundNumber, 'f002%'])
