@@ -783,10 +783,10 @@ describe('Round Tracker', () => {
         ])
 
         // Only request 1 task - this should select just one (payload_cid, miner_id) pair
-        // but should include all clients associated with that pair
+        // but should include all clients and allocators associated with that pair
         await defineTasksForRound(pgClient, roundNumber, 1)
 
-        // Verify results - we should have only one task, but it should contain all three clients
+        // Verify results - we should have only one task, but it should contain all three clients and allocators
         const { rows: tasks } = await pgClient.query('SELECT miner_id, cid, clients, allocators FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
 
         assert.strictEqual(tasks.length, 1, 'Should have exactly one task')
@@ -841,9 +841,8 @@ describe('Round Tracker', () => {
 
         await defineTasksForRound(pgClient, roundNumber, 1)
 
-        // Verify results again
+        // Verify results
         const { rows: tasks } = await pgClient.query('SELECT miner_id, cid, clients, allocators FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
-
         assert.strictEqual(tasks.length, 1, 'Should have exactly one task')
 
         // The fixed allocators array should be deduplicated
