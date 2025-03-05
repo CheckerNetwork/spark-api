@@ -311,7 +311,7 @@ export async function defineTasksForRound (pgClient, sparkRoundNumber, taskCount
   await pgClient.query(`
     INSERT INTO retrieval_tasks (round_id, cid, miner_id, clients, allocators)
     WITH selected AS (
-      SELECT payload_cid, miner_id, client_id
+      SELECT payload_cid, miner_id
       FROM eligible_deals
       WHERE expires_at > now()
       ORDER BY random()
@@ -321,7 +321,7 @@ export async function defineTasksForRound (pgClient, sparkRoundNumber, taskCount
       $1 as round_id, 
       selected.payload_cid as cid, 
       selected.miner_id, 
-      array_agg(DISTINCT selected.client_id) as clients,
+      array_agg(DISTINCT eligible_deals.client_id) as clients,
       array_agg(DISTINCT ac.allocator_id) as allocators
     FROM selected
     LEFT JOIN eligible_deals
