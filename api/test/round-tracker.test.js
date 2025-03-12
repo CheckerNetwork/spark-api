@@ -564,7 +564,7 @@ describe('Round Tracker', () => {
     })
 
     describe('defineTasksForRound', () => {
-      const expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
       before(async () => {
         // Mark all existing deals as expired
         await pgClient.query(`
@@ -574,7 +574,7 @@ describe('Round Tracker', () => {
 
       beforeEach(async () => {
         await pgClient.query('DELETE FROM allocator_clients')
-        await pgClient.query('DELETE FROM eligible_deals WHERE expires_at = $1', [expires_at])
+        await pgClient.query('DELETE FROM eligible_deals WHERE expires_at = $1', [expiresAt])
       })
 
       after(async () => {
@@ -600,7 +600,7 @@ describe('Round Tracker', () => {
           ('f0010', 'f0050', 'baga1', 1, 'bafkqaaa', $1, true),
           ('f0010', 'f0050', 'baga2', 1, 'bafkqaaa', $1, true),
           ('f0011', 'f0050', 'baga1', 1, 'bafkqaaa', $1, true)
-        `, [expires_at])
+        `, [expiresAt])
 
         // Create a new round and define tasks for the round
         const roundId = 1
@@ -643,7 +643,7 @@ describe('Round Tracker', () => {
           ('f0020', 'clientA1', 'baga1', 1, 'bafkTest', $1),
           ('f0021', 'clientA2', 'baga2', 1, 'bafkTest', $1),
           ('f0022', 'clientA3', 'baga3', 1, 'bafkTest', $1)
-        `, [expires_at])
+        `, [expiresAt])
 
         await pgClient.query(`
           INSERT INTO allocator_clients (client_id, allocator_id)
@@ -698,7 +698,7 @@ describe('Round Tracker', () => {
           ('f0030', 'client', 'baga1', 1, 'bafkTest', $1),
           ('f0031', 'client', 'baga2', 1, 'bafkTest', $1),
           ('f0032', 'client', 'baga3', 1, 'bafkTest', $1)
-        `, [expires_at])
+        `, [expiresAt])
 
         await pgClient.query(`
           INSERT INTO allocator_clients (client_id, allocator_id)
@@ -750,7 +750,7 @@ describe('Round Tracker', () => {
           ('f0040', 'clientB1', 'baga1', 1, 'bafkSameMiner', $1),
           ('f0040', 'clientB2', 'baga2', 1, 'bafkSameMiner', $1),
           ('f0040', 'clientB3', 'baga3', 1, 'bafkSameMiner', $1)
-        `, [expires_at])
+        `, [expiresAt])
 
         // Link each client to a different allocator
         await pgClient.query(`
@@ -800,7 +800,7 @@ describe('Round Tracker', () => {
     ('f0050', 'clientC1', 'baga1', 1, 'bafkDupAllocator', $1),
     ('f0050', 'clientC2', 'baga2', 1, 'bafkDupAllocator', $1),
     ('f0050', 'clientC3', 'baga3', 1, 'bafkDupAllocator', $1)
-  `, [expires_at])
+  `, [expiresAt])
 
         // Link clients to allocators with intentional duplication
         // clientC1 and clientC2 share the same allocator
