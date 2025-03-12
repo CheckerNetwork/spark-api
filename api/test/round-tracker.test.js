@@ -571,6 +571,11 @@ describe('Round Tracker', () => {
         `)
       })
 
+      beforeEach(async () => {
+        await pgClient.query('DELETE FROM allocator_clients')
+        await pgClient.query("DELETE FROM eligible_deals WHERE expires_at < NOW() + INTERVAL '1 year'")
+      })
+
       after(async () => {
         // Revert the change that expired existing deals
         await pgClient.query(`
@@ -626,11 +631,6 @@ describe('Round Tracker', () => {
             clients: ['f0050']
           }
         ])
-
-        // Clean up
-        await pgClient.query('DELETE FROM retrieval_tasks WHERE round_id = $1', [roundId])
-        await pgClient.query('DELETE FROM spark_rounds WHERE id = $1', [roundId])
-        await pgClient.query("DELETE FROM eligible_deals WHERE miner_id LIKE 'f001%' AND client_id = 'f0050' AND piece_cid LIKE 'baga%' AND piece_size = 1")
       })
 
       it('should handle single allocator with multiple clients correctly', async () => {
@@ -686,12 +686,6 @@ describe('Round Tracker', () => {
             allocators: ['allocator']
           }
         ])
-
-        // Clean up
-        await pgClient.query('DELETE FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
-        await pgClient.query('DELETE FROM spark_rounds WHERE id = $1', [roundNumber])
-        await pgClient.query("DELETE FROM eligible_deals WHERE miner_id LIKE 'f002%' AND client_id LIKE 'clientA%' AND piece_cid LIKE 'baga%' AND piece_size = 1")
-        await pgClient.query("DELETE FROM allocator_clients WHERE client_id LIKE 'client%' AND allocator_id = 'allocator'")
       })
 
       it('should handle multiple allocators for a single client correctly', async () => {
@@ -745,12 +739,6 @@ describe('Round Tracker', () => {
             allocators: ['allocator1', 'allocator2', 'allocator3']
           }
         ])
-
-        // Clean up
-        await pgClient.query('DELETE FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
-        await pgClient.query('DELETE FROM spark_rounds WHERE id = $1', [roundNumber])
-        await pgClient.query("DELETE FROM eligible_deals WHERE miner_id LIKE 'f003%' AND client_id = 'client' AND piece_cid LIKE 'baga%' AND piece_size = 1")
-        await pgClient.query("DELETE FROM allocator_clients WHERE client_id = 'client' AND allocator_id LIKE 'allocator%'")
       })
       it('should correctly aggregate all clients and allocators for the same (payload_cid, miner_id) pair', async () => {
         // Insert test data with multiple clients for the same (payload_cid, miner_id) pair
@@ -800,12 +788,6 @@ describe('Round Tracker', () => {
         // The allocators array should contain all three allocators
         assert.deepStrictEqual(tasks[0].allocators.sort(), ['allocatorB1', 'allocatorB2', 'allocatorB3'].sort(),
           'Should include all allocators for the clients')
-
-        // Clean up
-        await pgClient.query('DELETE FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
-        await pgClient.query('DELETE FROM spark_rounds WHERE id = $1', [roundNumber])
-        await pgClient.query("DELETE FROM eligible_deals WHERE miner_id = 'f0040' AND client_id LIKE 'clientB%' AND piece_cid LIKE 'baga%'")
-        await pgClient.query("DELETE FROM allocator_clients WHERE client_id LIKE 'clientB%' AND allocator_id LIKE 'allocatorB%'")
       })
 
       it('should deduplicate allocators in the allocators array', async () => {
@@ -848,12 +830,6 @@ describe('Round Tracker', () => {
         // The fixed allocators array should be deduplicated
         assert.deepStrictEqual(tasks[0].allocators.sort(), ['sharedAllocator', 'uniqueAllocator'].sort(),
           'The allocators array should be properly deduplicated')
-
-        // Clean up
-        await pgClient.query('DELETE FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
-        await pgClient.query('DELETE FROM spark_rounds WHERE id = $1', [roundNumber])
-        await pgClient.query("DELETE FROM eligible_deals WHERE miner_id = 'f0050' AND client_id LIKE 'clientC%' AND piece_cid LIKE 'baga%'")
-        await pgClient.query("DELETE FROM allocator_clients WHERE client_id LIKE 'clientC%'")
       })
     })
   })
