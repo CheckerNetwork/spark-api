@@ -564,6 +564,7 @@ describe('Round Tracker', () => {
     })
 
     describe('defineTasksForRound', () => {
+      const expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000);
       before(async () => {
         // Mark all existing deals as expired
         await pgClient.query(`
@@ -573,7 +574,7 @@ describe('Round Tracker', () => {
 
       beforeEach(async () => {
         await pgClient.query('DELETE FROM allocator_clients')
-        await pgClient.query("DELETE FROM eligible_deals WHERE expires_at < NOW() + INTERVAL '1 year'")
+        await pgClient.query('DELETE FROM eligible_deals WHERE expires_at = $1', [expires_at])
       })
 
       after(async () => {
@@ -596,10 +597,10 @@ describe('Round Tracker', () => {
           INSERT INTO eligible_deals
           (miner_id, client_id, piece_cid, piece_size, payload_cid, expires_at, sourced_from_f05_state)
           VALUES
-          ('f0010', 'f0050', 'baga1', 1, 'bafkqaaa', NOW() + INTERVAL '1 year', true),
-          ('f0010', 'f0050', 'baga2', 1, 'bafkqaaa', NOW() + INTERVAL '1 year', true),
-          ('f0011', 'f0050', 'baga1', 1, 'bafkqaaa', NOW() + INTERVAL '1 year', true)
-        `)
+          ('f0010', 'f0050', 'baga1', 1, 'bafkqaaa', $1, true),
+          ('f0010', 'f0050', 'baga2', 1, 'bafkqaaa', $1, true),
+          ('f0011', 'f0050', 'baga1', 1, 'bafkqaaa', $1, true)
+        `, [expires_at])
 
         // Create a new round and define tasks for the round
         const roundId = 1
@@ -639,10 +640,10 @@ describe('Round Tracker', () => {
           INSERT INTO eligible_deals
           (miner_id, client_id, piece_cid, piece_size, payload_cid, expires_at)
           VALUES
-          ('f0020', 'clientA1', 'baga1', 1, 'bafkTest', NOW() + INTERVAL '1 year'),
-          ('f0021', 'clientA2', 'baga2', 1, 'bafkTest', NOW() + INTERVAL '1 year'),
-          ('f0022', 'clientA3', 'baga3', 1, 'bafkTest', NOW() + INTERVAL '1 year')
-        `)
+          ('f0020', 'clientA1', 'baga1', 1, 'bafkTest', $1),
+          ('f0021', 'clientA2', 'baga2', 1, 'bafkTest', $1),
+          ('f0022', 'clientA3', 'baga3', 1, 'bafkTest', $1)
+        `, [expires_at])
 
         await pgClient.query(`
           INSERT INTO allocator_clients (client_id, allocator_id)
@@ -694,10 +695,10 @@ describe('Round Tracker', () => {
           INSERT INTO eligible_deals
           (miner_id, client_id, piece_cid, piece_size, payload_cid, expires_at)
           VALUES
-          ('f0030', 'client', 'baga1', 1, 'bafkTest', NOW() + INTERVAL '1 year'),
-          ('f0031', 'client', 'baga2', 1, 'bafkTest', NOW() + INTERVAL '1 year'),
-          ('f0032', 'client', 'baga3', 1, 'bafkTest', NOW() + INTERVAL '1 year')
-        `)
+          ('f0030', 'client', 'baga1', 1, 'bafkTest', $1),
+          ('f0031', 'client', 'baga2', 1, 'bafkTest', $1),
+          ('f0032', 'client', 'baga3', 1, 'bafkTest', $1)
+        `, [expires_at])
 
         await pgClient.query(`
           INSERT INTO allocator_clients (client_id, allocator_id)
@@ -746,10 +747,10 @@ describe('Round Tracker', () => {
           INSERT INTO eligible_deals
           (miner_id, client_id, piece_cid, piece_size, payload_cid, expires_at)
           VALUES
-          ('f0040', 'clientB1', 'baga1', 1, 'bafkSameMiner', NOW() + INTERVAL '1 year'),
-          ('f0040', 'clientB2', 'baga2', 1, 'bafkSameMiner', NOW() + INTERVAL '1 year'),
-          ('f0040', 'clientB3', 'baga3', 1, 'bafkSameMiner', NOW() + INTERVAL '1 year')
-        `)
+          ('f0040', 'clientB1', 'baga1', 1, 'bafkSameMiner', $1),
+          ('f0040', 'clientB2', 'baga2', 1, 'bafkSameMiner', $1),
+          ('f0040', 'clientB3', 'baga3', 1, 'bafkSameMiner', $1)
+        `, [expires_at])
 
         // Link each client to a different allocator
         await pgClient.query(`
@@ -796,10 +797,10 @@ describe('Round Tracker', () => {
     INSERT INTO eligible_deals
     (miner_id, client_id, piece_cid, piece_size, payload_cid, expires_at)
     VALUES
-    ('f0050', 'clientC1', 'baga1', 1, 'bafkDupAllocator', NOW() + INTERVAL '1 year'),
-    ('f0050', 'clientC2', 'baga2', 1, 'bafkDupAllocator', NOW() + INTERVAL '1 year'),
-    ('f0050', 'clientC3', 'baga3', 1, 'bafkDupAllocator', NOW() + INTERVAL '1 year')
-  `)
+    ('f0050', 'clientC1', 'baga1', 1, 'bafkDupAllocator', $1),
+    ('f0050', 'clientC2', 'baga2', 1, 'bafkDupAllocator', $1),
+    ('f0050', 'clientC3', 'baga3', 1, 'bafkDupAllocator', $1)
+  `, [expires_at])
 
         // Link clients to allocators with intentional duplication
         // clientC1 and clientC2 share the same allocator
