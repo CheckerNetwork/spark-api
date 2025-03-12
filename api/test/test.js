@@ -14,7 +14,7 @@ import { createTelemetryRecorderStub } from '../../test-helpers/platform-test-he
 
 const { DATABASE_URL } = process.env
 const participantAddress = '0x000000000000000000000000000000000000dEaD'
-const sparkVersion = '1.13.0' // This must be in sync with the minimum supported client version
+const sparkVersion = '1.17.0' // This must be in sync with the minimum supported client version
 const currentSparkRoundNumber = 42n
 
 const VALID_DEAL_INGESTION_TOKEN = 'authorized-token'
