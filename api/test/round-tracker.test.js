@@ -564,11 +564,17 @@ describe('Round Tracker', () => {
     })
 
     describe('defineTasksForRound', () => {
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
       before(async () => {
         // Mark all existing deals as expired
         await pgClient.query(`
           UPDATE eligible_deals SET expires_at = NOW() - INTERVAL '1 day'
         `)
+      })
+
+      beforeEach(async () => {
+        await pgClient.query('DELETE FROM allocator_clients')
+        await pgClient.query('DELETE FROM eligible_deals WHERE expires_at = $1', [expiresAt])
       })
 
       after(async () => {
@@ -591,10 +597,10 @@ describe('Round Tracker', () => {
           INSERT INTO eligible_deals
           (miner_id, client_id, piece_cid, piece_size, payload_cid, expires_at, sourced_from_f05_state)
           VALUES
-          ('f0010', 'f0050', 'baga1', 1, 'bafkqaaa', NOW() + INTERVAL '1 year', true),
-          ('f0010', 'f0050', 'baga2', 1, 'bafkqaaa', NOW() + INTERVAL '1 year', true),
-          ('f0011', 'f0050', 'baga1', 1, 'bafkqaaa', NOW() + INTERVAL '1 year', true)
-        `)
+          ('f0010', 'f0050', 'baga1', 1, 'bafkqaaa', $1, true),
+          ('f0010', 'f0050', 'baga2', 1, 'bafkqaaa', $1, true),
+          ('f0011', 'f0050', 'baga1', 1, 'bafkqaaa', $1, true)
+        `, [expiresAt])
 
         // Create a new round and define tasks for the round
         const roundId = 1
@@ -626,6 +632,205 @@ describe('Round Tracker', () => {
             clients: ['f0050']
           }
         ])
+      })
+
+      it('should handle single allocator with multiple clients correctly', async () => {
+        // Insert test data with one allocator having multiple clients
+        await pgClient.query(`
+          INSERT INTO eligible_deals
+          (miner_id, client_id, piece_cid, piece_size, payload_cid, expires_at)
+          VALUES
+          ('f0020', 'clientA1', 'baga1', 1, 'bafkTest', $1),
+          ('f0021', 'clientA2', 'baga2', 1, 'bafkTest', $1),
+          ('f0022', 'clientA3', 'baga3', 1, 'bafkTest', $1)
+        `, [expiresAt])
+
+        await pgClient.query(`
+          INSERT INTO allocator_clients (client_id, allocator_id)
+          VALUES 
+            ('clientA1', 'allocator'),
+            ('clientA2', 'allocator'),
+            ('clientA3', 'allocator')
+        `)
+
+        const roundNumber = 10024n
+        await pgClient.query(`
+          INSERT INTO spark_rounds
+          (id, created_at, meridian_address, meridian_round, start_epoch, max_tasks_per_node)
+          VALUES
+          ($1, NOW(), '0x1a', 1, 1, 15)
+        `, [
+          roundNumber
+        ])
+
+        await defineTasksForRound(pgClient, roundNumber, 3)
+
+        // Verify results
+        const { rows: tasks } = await pgClient.query('SELECT miner_id, cid, clients, allocators FROM retrieval_tasks WHERE round_id = $1 AND miner_id LIKE $2', [roundNumber, 'f002%'])
+        assert.deepStrictEqual(tasks, [
+          {
+            cid: 'bafkTest',
+            miner_id: 'f0020',
+            clients: ['clientA1'],
+            allocators: ['allocator']
+          },
+          {
+            cid: 'bafkTest',
+            miner_id: 'f0021',
+            clients: ['clientA2'],
+            allocators: ['allocator']
+          },
+          {
+            cid: 'bafkTest',
+            miner_id: 'f0022',
+            clients: ['clientA3'],
+            allocators: ['allocator']
+          }
+        ])
+      })
+
+      it('should handle multiple allocators for a single client correctly', async () => {
+        // Insert test data with one client having multiple allocators
+        await pgClient.query(`
+          INSERT INTO eligible_deals
+          (miner_id, client_id, piece_cid, piece_size, payload_cid, expires_at)
+          VALUES
+          ('f0030', 'client', 'baga1', 1, 'bafkTest', $1),
+          ('f0031', 'client', 'baga2', 1, 'bafkTest', $1),
+          ('f0032', 'client', 'baga3', 1, 'bafkTest', $1)
+        `, [expiresAt])
+
+        await pgClient.query(`
+          INSERT INTO allocator_clients (client_id, allocator_id)
+          VALUES 
+            ('client', 'allocator1'),
+            ('client', 'allocator2'),
+            ('client', 'allocator3')
+        `)
+        const roundNumber = 10025n
+        await pgClient.query(`
+          INSERT INTO spark_rounds
+          (id, created_at, meridian_address, meridian_round, start_epoch, max_tasks_per_node)
+          VALUES
+          ($1, NOW(), '0x1a', 1, 1, 15)
+        `, [
+          roundNumber
+        ])
+        await defineTasksForRound(pgClient, roundNumber, 3)
+
+        // Verify results
+        const { rows: tasks } = await pgClient.query('SELECT miner_id, cid, clients, allocators FROM retrieval_tasks WHERE round_id = $1 AND miner_id LIKE $2', [roundNumber, 'f003%'])
+        assert.deepStrictEqual(tasks, [
+          {
+            cid: 'bafkTest',
+            miner_id: 'f0030',
+            clients: ['client'],
+            allocators: ['allocator1', 'allocator2', 'allocator3']
+          },
+          {
+            cid: 'bafkTest',
+            miner_id: 'f0031',
+            clients: ['client'],
+            allocators: ['allocator1', 'allocator2', 'allocator3']
+          },
+          {
+            cid: 'bafkTest',
+            miner_id: 'f0032',
+            clients: ['client'],
+            allocators: ['allocator1', 'allocator2', 'allocator3']
+          }
+        ])
+      })
+      it('should correctly aggregate all clients and allocators for the same (payload_cid, miner_id) pair', async () => {
+        // Insert test data with multiple clients for the same (payload_cid, miner_id) pair
+        await pgClient.query(`
+          INSERT INTO eligible_deals
+          (miner_id, client_id, piece_cid, piece_size, payload_cid, expires_at)
+          VALUES
+          ('f0040', 'clientB1', 'baga1', 1, 'bafkSameMiner', $1),
+          ('f0040', 'clientB2', 'baga2', 1, 'bafkSameMiner', $1),
+          ('f0040', 'clientB3', 'baga3', 1, 'bafkSameMiner', $1)
+        `, [expiresAt])
+
+        // Link each client to a different allocator
+        await pgClient.query(`
+          INSERT INTO allocator_clients (client_id, allocator_id)
+          VALUES 
+            ('clientB1', 'allocatorB1'),
+            ('clientB2', 'allocatorB2'),
+            ('clientB3', 'allocatorB3')
+        `)
+
+        const roundNumber = 10026n
+        await pgClient.query(`
+          INSERT INTO spark_rounds
+          (id, created_at, meridian_address, meridian_round, start_epoch, max_tasks_per_node)
+          VALUES
+          ($1, NOW(), '0x1a', 1, 1, 15)
+        `, [
+          roundNumber
+        ])
+
+        // Only request 1 task - this should select just one (payload_cid, miner_id) pair
+        // but should include all clients and allocators associated with that pair
+        await defineTasksForRound(pgClient, roundNumber, 1)
+
+        // Verify results - we should have only one task, but it should contain all three clients and allocators
+        const { rows: tasks } = await pgClient.query('SELECT miner_id, cid, clients, allocators FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
+
+        assert.strictEqual(tasks.length, 1, 'Should have exactly one task')
+        assert.strictEqual(tasks[0].miner_id, 'f0040', 'Should have the expected miner_id')
+        assert.strictEqual(tasks[0].cid, 'bafkSameMiner', 'Should have the expected CID')
+
+        // The clients array should contain all three clients
+        assert.deepStrictEqual(tasks[0].clients.sort(), ['clientB1', 'clientB2', 'clientB3'].sort(),
+          'Should include all clients for the same (payload_cid, miner_id) pair')
+
+        // The allocators array should contain all three allocators
+        assert.deepStrictEqual(tasks[0].allocators.sort(), ['allocatorB1', 'allocatorB2', 'allocatorB3'].sort(),
+          'Should include all allocators for the clients')
+      })
+
+      it('should deduplicate allocators in the allocators array', async () => {
+        // Insert test data with multiple clients for the same (payload_cid, miner_id) pair
+        await pgClient.query(`
+    INSERT INTO eligible_deals
+    (miner_id, client_id, piece_cid, piece_size, payload_cid, expires_at)
+    VALUES
+    ('f0050', 'clientC1', 'baga1', 1, 'bafkDupAllocator', $1),
+    ('f0050', 'clientC2', 'baga2', 1, 'bafkDupAllocator', $1),
+    ('f0050', 'clientC3', 'baga3', 1, 'bafkDupAllocator', $1)
+  `, [expiresAt])
+
+        // Link clients to allocators with intentional duplication
+        // clientC1 and clientC2 share the same allocator
+        await pgClient.query(`
+    INSERT INTO allocator_clients (client_id, allocator_id)
+    VALUES 
+      ('clientC1', 'sharedAllocator'),
+      ('clientC2', 'sharedAllocator'), -- Same allocator as clientC1
+      ('clientC3', 'uniqueAllocator')
+  `)
+
+        const roundNumber = 10027n
+        await pgClient.query(`
+    INSERT INTO spark_rounds
+    (id, created_at, meridian_address, meridian_round, start_epoch, max_tasks_per_node)
+    VALUES
+    ($1, NOW(), '0x1a', 1, 1, 15)
+  `, [
+          roundNumber
+        ])
+
+        await defineTasksForRound(pgClient, roundNumber, 1)
+
+        // Verify results
+        const { rows: tasks } = await pgClient.query('SELECT miner_id, cid, clients, allocators FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
+        assert.strictEqual(tasks.length, 1, 'Should have exactly one task')
+
+        // The fixed allocators array should be deduplicated
+        assert.deepStrictEqual(tasks[0].allocators.sort(), ['sharedAllocator', 'uniqueAllocator'].sort(),
+          'The allocators array should be properly deduplicated')
       })
     })
   })

@@ -515,8 +515,12 @@ describe('Routes', () => {
       for (const task of retrievalTasks) {
         assert.equal(typeof task.cid, 'string', 'all tasks have "cid"')
         assert.equal(typeof task.minerId, 'string', 'all tasks have "minerId"')
+
         assert(Array.isArray(task.clients), 'all tasks have "clients" array')
         assert(task.clients.length > 0, 'all tasks have at least one item in "clients"')
+
+        assert(Array.isArray(task.allocators), 'all tasks have "allocators" array')
+        assert(task.allocators.length > 0, 'all tasks have at least one item in "allocators"')
       }
     })
 
