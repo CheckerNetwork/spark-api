@@ -1,8 +1,9 @@
 import '../lib/instrument.js'
 import assert from 'node:assert'
-import http from 'node:http'
 import { once } from 'node:events'
-import { createHandler } from '../index.js'
+import Fastify from 'fastify'
+import { createFastifyApp } from '../fastify-app.js'
+// import { createHandler } from '../index.js'
 import pg from 'pg'
 import { startRoundTracker } from '../lib/round-tracker.js'
 import { migrate } from '../../migrations/index.js'
@@ -24,7 +25,7 @@ const {
 // The same token is configured in Fly.io secrets for the deal-observer service too.
 assert(DEAL_INGESTER_TOKEN, 'DEAL_INGESTER_TOKEN is required')
 
-const client = new pg.Pool({
+const pgPool = new pg.Pool({
   connectionString: DATABASE_URL,
   // allow the pool to close all connections and become empty
   min: 0,
@@ -38,20 +39,20 @@ const client = new pg.Pool({
   maxLifetimeSeconds: 60
 })
 
-client.on('error', err => {
+pgPool.on('error', err => {
   // Prevent crashing the process on idle client errors, the pool will recover
   // itself. If all connections are lost, the process will still crash.
   // https://github.com/brianc/node-postgres/issues/1324#issuecomment-308778405
   console.error('An idle client has experienced an error', err.stack)
 })
-await migrate(client)
+await migrate(pgPool)
 
 console.log('Initializing round tracker...')
 const start = new Date()
 
 try {
   const currentRound = await startRoundTracker({
-    pgPool: client,
+    pgPool,
     recordTelemetry: recordNetworkInfoTelemetry
   })
   console.log(
@@ -73,16 +74,21 @@ const logger = {
   request: ['1', 'true'].includes(REQUEST_LOGGING) ? console.info : () => { }
 }
 
-const handler = await createHandler({
-  client,
+// Initialize Fastify app
+const fastifyApp = await createFastifyApp({
+  pgPool,
   logger,
   dealIngestionAccessToken: DEAL_INGESTER_TOKEN,
   domain: DOMAIN
 })
 
-const port = Number(PORT)
-const server = http.createServer(handler)
-console.log('Starting the http server on host %j port %s', HOST, port)
-server.listen(port, HOST)
-await once(server, 'listening')
-console.log(`http://${HOST}:${PORT}`)
+try {
+  await fastifyApp.listen({ 
+    port: Number(PORT), 
+    host: HOST 
+  })
+  console.log(`Server is running on ${fastifyApp.server.address().address}:${fastifyApp.server.address().port}`)
+} catch (err) {
+  console.error('Error starting server:', err)
+  process.exit(1)
+}
