@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node bin/spark.js",
     "lint": "standard",
+    "start:fastify": "node bin/spark-fastify.js",
     "test": "mocha"
   },
   "devDependencies": {
@@ -24,13 +25,14 @@
     "@sentry/node": "^9.5.0",
     "compare-versions": "^6.1.1",
     "ethers": "^6.13.5",
+    "fastify": "^4.26.0",
     "http-assert": "^1.5.0",
     "http-responders": "^2.2.0",
-    "multiformats": "^13.3.2",
+    "multiformats": "^13.3.2",                                                                             
     "pg": "^8.14.0",
     "postgrator": "^8.0.0",
     "raw-body": "^3.0.0"
-  },
+  },        
   "standard": {
     "env": [
       "mocha"
