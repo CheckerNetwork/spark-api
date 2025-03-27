@@ -53,6 +53,11 @@ export const publish = async ({
 
   logger.log(`Publishing ${measurements.length} measurements. Total unpublished: ${totalCount}. Batch size: ${maxMeasurements}.`)
 
+  // Calculate batch size in bytes
+  const batchSizeBytes = Buffer.byteLength(
+    measurements.map(m => JSON.stringify(m)).join('\n')
+  )
+
   // Share measurements
   const start = new Date()
   const file = new File(
@@ -126,7 +131,9 @@ export const publish = async ({
 
   logger.log('Done!')
 
+  // Enhanced telemetry recording with separate batch metrics
   recordTelemetry('publish', point => {
+    // Existing metrics
     point.intField('round_index', roundIndex)
     point.intField('measurements', measurements.length)
     point.floatField('load', totalCount / maxMeasurements)
@@ -135,6 +142,16 @@ export const publish = async ({
       uploadMeasurementsDuration
     )
     point.intField('add_measurements_duration_ms', ieAddMeasurementsDuration)
+  })
+
+  // Separate batch metrics recording for better organization
+  recordTelemetry('batch_metrics', point => {
+    point.intField('batch_size_bytes', batchSizeBytes)
+    point.floatField('avg_measurement_size_bytes', batchSizeBytes / measurements.length)
+    point.intField('measurement_count', measurements.length)
+    point.tag('cid', cid.toString())
+    point.tag('round_index', roundIndex.toString())
+    point.timestamp(new Date())
   })
 }
 
