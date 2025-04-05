@@ -131,7 +131,7 @@ export const publish = async ({
 
   logger.log('Done!')
 
-  // Enhanced telemetry recording with separate batch metrics
+  // Telemetry recording with batch size metrics
   recordTelemetry('publish', point => {
     // Existing metrics
     point.intField('round_index', roundIndex)
@@ -142,16 +142,10 @@ export const publish = async ({
       uploadMeasurementsDuration
     )
     point.intField('add_measurements_duration_ms', ieAddMeasurementsDuration)
-  })
 
-  // Separate batch metrics recording for better organization
-  recordTelemetry('batch_metrics', point => {
+    // Add batch size metrics to existing publish point
     point.intField('batch_size_bytes', batchSizeBytes)
     point.floatField('avg_measurement_size_bytes', batchSizeBytes / measurements.length)
-    point.intField('measurement_count', measurements.length)
-    point.tag('cid', cid.toString())
-    point.tag('round_index', roundIndex.toString())
-    point.timestamp(new Date())
   })
 }
 

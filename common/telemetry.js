@@ -35,7 +35,6 @@ const batchMetricsWriteClient = influx.getWriteApi(
 setInterval(() => {
   publishWriteClient.flush().catch(console.error)
   networkInfoWriteClient.flush().catch(console.error)
-  batchMetricsWriteClient.flush().catch(console.error)
 }, 10_000).unref()
 
 const recordFn = (client, name, fn) => {
@@ -51,6 +50,5 @@ export {
   publishWriteClient,
   networkInfoWriteClient,
   recordPublishTelemetry,
-  recordNetworkInfoTelemetry,
-  batchMetricsWriteClient
+  recordNetworkInfoTelemetry
 }
