@@ -40,7 +40,10 @@ const VALID_MEASUREMENT = {
   providerId: 'provider-pubkey',
   indexerResult: 'OK',
   networkRetrievalStatusCode: null,
-  networkRetrievalTimeout: false
+  networkRetrievalTimeout: false,
+  networkRetrievalCarTooLarge: false,
+  networkRetrievalEndAt: null,
+  networkRetrievalProtocol: null
 }
 
 const assertResponseStatus = async (res, status) => {
