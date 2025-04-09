@@ -39,11 +39,11 @@ const VALID_MEASUREMENT = {
   minerId: 'f02abc',
   providerId: 'provider-pubkey',
   indexerResult: 'OK',
-  networkRetrievalStatusCode: null,
+  networkRetrievalStatusCode: 200,
   networkRetrievalTimeout: false,
   networkRetrievalCarTooLarge: false,
-  networkRetrievalEndAt: null,
-  networkRetrievalProtocol: null
+  networkRetrievalEndAt: new Date(),
+  networkRetrievalProtocol: 'graphsync'
 }
 
 const assertResponseStatus = async (res, status) => {
