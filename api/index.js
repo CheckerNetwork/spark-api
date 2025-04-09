@@ -96,6 +96,8 @@ const createMeasurement = async (req, res, client) => {
   validate(measurement, 'minerId', { type: 'string', required: false })
   validate(measurement, 'providerId', { type: 'string', required: false })
   validate(measurement, 'stationId', { type: 'string', required: true })
+  validate(measurement, 'networkWideRetrievalStatusCode', { type: 'number', required: false })
+  validate(measurement, 'networkWideRetrievalTimeout', { type: 'boolean', required: false })
   assert(measurement.stationId.match(/^[0-9a-fA-F]{88}$/), 400, 'Invalid Station ID')
 
   const inetGroup = await mapRequestToInetGroup(client, req)
@@ -124,10 +126,12 @@ const createMeasurement = async (req, res, client) => {
         indexer_result,
         miner_id,
         provider_id,
+        network_wide_retrieval_status_code,
+        network_wide_retrieval_timeout,
         completed_at_round
       )
       SELECT
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23,
         id as completed_at_round
       FROM spark_rounds
       ORDER BY id DESC
@@ -154,7 +158,9 @@ const createMeasurement = async (req, res, client) => {
     measurement.carChecksum,
     measurement.indexerResult,
     measurement.minerId,
-    measurement.providerId
+    measurement.providerId,
+    measurement.networkWideRetrievalStatusCode,
+    measurement.networkWideRetrievalTimeout
   ])
   json(res, { id: rows[0].id })
 }
@@ -190,7 +196,9 @@ const getMeasurement = async (req, res, client, measurementId) => {
     endAt: resultRow.end_at,
     byteLength: resultRow.byte_length,
     carTooLarge: resultRow.car_too_large,
-    attestation: resultRow.attestation
+    attestation: resultRow.attestation,
+    networkWideRetrievalStatusCode: resultRow.network_wide_retrieval_status_code,
+    networkWideRetrievalTimeout: resultRow.network_wide_retrieval_timeout
   })
 }
 

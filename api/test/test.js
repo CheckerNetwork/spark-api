@@ -38,7 +38,9 @@ const VALID_MEASUREMENT = {
   carChecksum: 'somehash',
   minerId: 'f02abc',
   providerId: 'provider-pubkey',
-  indexerResult: 'OK'
+  indexerResult: 'OK',
+  networkWideRetrievalStatusCode: null,
+  networkWideRetrievalTimeout: false
 }
 
 const assertResponseStatus = async (res, status) => {
@@ -194,6 +196,8 @@ describe('Routes', () => {
       assert.strictEqual(measurementRow.miner_id, measurement.minerId)
       assert.strictEqual(measurementRow.provider_id, measurement.providerId)
       assert.strictEqual(measurementRow.station_id, measurement.stationId)
+      assert.strictEqual(measurementRow.network_wide_retrieval_status_code, measurement.networkWideRetrievalStatusCode)
+      assert.strictEqual(measurementRow.network_wide_retrieval_timeout, measurement.networkWideRetrievalTimeout)
     })
 
     it('allows older format with walletAddress', async () => {
