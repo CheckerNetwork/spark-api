@@ -126,8 +126,8 @@ const createMeasurement = async (req, res, client) => {
         indexer_result,
         miner_id,
         provider_id,
-        network_wide_retrieval_status_code,
-        network_wide_retrieval_timeout,
+        network_retrieval_status_code,
+        network_retrieval_timeout,
         completed_at_round
       )
       SELECT
@@ -197,8 +197,8 @@ const getMeasurement = async (req, res, client, measurementId) => {
     byteLength: resultRow.byte_length,
     carTooLarge: resultRow.car_too_large,
     attestation: resultRow.attestation,
-    networkWideRetrievalStatusCode: resultRow.network_wide_retrieval_status_code,
-    networkWideRetrievalTimeout: resultRow.network_wide_retrieval_timeout
+    networkRetrievalStatusCode: resultRow.network_retrieval_status_code,
+    networkRetrievalTimeout: resultRow.network_retrieval_timeout
   })
 }
 
