@@ -98,6 +98,15 @@ const createMeasurement = async (req, res, client) => {
   validate(measurement, 'stationId', { type: 'string', required: true })
   assert(measurement.stationId.match(/^[0-9a-fA-F]{88}$/), 400, 'Invalid Station ID')
 
+  if (measurement.networkRetrieval) {
+    validate(measurement, 'networkRetrieval', { type: 'object', required: false })
+    validate(measurement.networkRetrieval, 'statusCode', { type: 'number', required: false })
+    validate(measurement.networkRetrieval, 'timeout', { type: 'boolean', required: false })
+    validate(measurement.networkRetrieval, 'carTooLarge', { type: 'boolean', required: false })
+    validate(measurement.networkRetrieval, 'endAt', { type: 'date', required: false })
+    validate(measurement.networkRetrieval, 'protocol', { type: 'string', required: false })
+  }
+
   const inetGroup = await mapRequestToInetGroup(client, req)
   logNetworkInfo(req.headers, measurement.stationId, recordNetworkInfoTelemetry)
 
@@ -124,10 +133,15 @@ const createMeasurement = async (req, res, client) => {
         indexer_result,
         miner_id,
         provider_id,
+        network_retrieval_status_code,
+        network_retrieval_timeout,
+        network_retrieval_car_too_large,
+        network_retrieval_end_at,
+        network_retrieval_protocol,
         completed_at_round
       )
       SELECT
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
         id as completed_at_round
       FROM spark_rounds
       ORDER BY id DESC
@@ -154,7 +168,12 @@ const createMeasurement = async (req, res, client) => {
     measurement.carChecksum,
     measurement.indexerResult,
     measurement.minerId,
-    measurement.providerId
+    measurement.providerId,
+    measurement.networkRetrieval?.statusCode,
+    measurement.networkRetrieval?.timeout,
+    measurement.networkRetrieval?.carTooLarge ?? false,
+    measurement.networkRetrieval?.endAt,
+    measurement.networkRetrieval?.protocol
   ])
   json(res, { id: rows[0].id })
 }
@@ -190,7 +209,14 @@ const getMeasurement = async (req, res, client, measurementId) => {
     endAt: resultRow.end_at,
     byteLength: resultRow.byte_length,
     carTooLarge: resultRow.car_too_large,
-    attestation: resultRow.attestation
+    attestation: resultRow.attestation,
+    networkRetrieval: {
+      statusCode: resultRow.network_retrieval_status_code,
+      timeout: resultRow.network_retrieval_timeout,
+      carTooLarge: resultRow.network_retrieval_car_too_large,
+      endAt: resultRow.network_retrieval_end_at,
+      protocol: resultRow.network_retrieval_protocol
+    }
   })
 }
 
