@@ -96,12 +96,16 @@ const createMeasurement = async (req, res, client) => {
   validate(measurement, 'minerId', { type: 'string', required: false })
   validate(measurement, 'providerId', { type: 'string', required: false })
   validate(measurement, 'stationId', { type: 'string', required: true })
-  validate(measurement, 'networkRetrievalStatusCode', { type: 'number', required: false })
-  validate(measurement, 'networkRetrievalTimeout', { type: 'boolean', required: false })
-  validate(measurement, 'networkRetrievalCarTooLarge', { type: 'boolean', required: false })
-  validate(measurement, 'networkRetrievalEndAt', { type: 'date', required: false })
-  validate(measurement, 'networkRetrievalProtocol', { type: 'string', required: false })
   assert(measurement.stationId.match(/^[0-9a-fA-F]{88}$/), 400, 'Invalid Station ID')
+
+  if (measurement.networkRetrieval) {
+    validate(measurement, 'networkRetrieval', { type: 'object', required: false })
+    validate(measurement.networkRetrieval, 'statusCode', { type: 'number', required: false })
+    validate(measurement.networkRetrieval, 'timeout', { type: 'boolean', required: false })
+    validate(measurement.networkRetrieval, 'carTooLarge', { type: 'boolean', required: false })
+    validate(measurement.networkRetrieval, 'endAt', { type: 'date', required: false })
+    validate(measurement.networkRetrieval, 'protocol', { type: 'string', required: false })
+  }
 
   const inetGroup = await mapRequestToInetGroup(client, req)
   logNetworkInfo(req.headers, measurement.stationId, recordNetworkInfoTelemetry)
@@ -165,11 +169,11 @@ const createMeasurement = async (req, res, client) => {
     measurement.indexerResult,
     measurement.minerId,
     measurement.providerId,
-    measurement.networkRetrievalStatusCode,
-    measurement.networkRetrievalTimeout,
-    measurement.networkRetrievalCarTooLarge ?? false,
-    measurement.networkRetrievalEndAt,
-    measurement.networkRetrievalProtocol
+    measurement.networkRetrieval?.statusCode,
+    measurement.networkRetrieval?.timeout,
+    measurement.networkRetrieval?.carTooLarge ?? false,
+    measurement.networkRetrieval?.endAt,
+    measurement.networkRetrieval?.protocol
   ])
   json(res, { id: rows[0].id })
 }
@@ -206,11 +210,13 @@ const getMeasurement = async (req, res, client, measurementId) => {
     byteLength: resultRow.byte_length,
     carTooLarge: resultRow.car_too_large,
     attestation: resultRow.attestation,
-    networkRetrievalStatusCode: resultRow.network_retrieval_status_code,
-    networkRetrievalTimeout: resultRow.network_retrieval_timeout,
-    networkRetrievalCarTooLarge: resultRow.network_retrieval_car_too_large,
-    networkRetrievalEndAt: resultRow.network_retrieval_end_at,
-    networkRetrievalProtocol: resultRow.network_retrieval_protocol
+    networkRetrieval: {
+      statusCode: resultRow.network_retrieval_status_code,
+      timeout: resultRow.network_retrieval_timeout,
+      carTooLarge: resultRow.network_retrieval_car_too_large,
+      endAt: resultRow.network_retrieval_end_at,
+      protocol: resultRow.network_retrieval_protocol
+    }
   })
 }
 

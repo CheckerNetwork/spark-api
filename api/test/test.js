@@ -39,11 +39,13 @@ const VALID_MEASUREMENT = {
   minerId: 'f02abc',
   providerId: 'provider-pubkey',
   indexerResult: 'OK',
-  networkRetrievalStatusCode: 200,
-  networkRetrievalTimeout: false,
-  networkRetrievalCarTooLarge: false,
-  networkRetrievalEndAt: new Date(),
-  networkRetrievalProtocol: 'graphsync'
+  networkRetrieval: {
+    statusCode: 200,
+    timeout: false,
+    carTooLarge: false,
+    endAt: new Date(),
+    protocol: 'graphsync'
+  }
 }
 
 const assertResponseStatus = async (res, status) => {
@@ -199,8 +201,11 @@ describe('Routes', () => {
       assert.strictEqual(measurementRow.miner_id, measurement.minerId)
       assert.strictEqual(measurementRow.provider_id, measurement.providerId)
       assert.strictEqual(measurementRow.station_id, measurement.stationId)
-      assert.strictEqual(measurementRow.network_retrieval_status_code, measurement.networkRetrievalStatusCode)
-      assert.strictEqual(measurementRow.network_retrieval_timeout, measurement.networkRetrievalTimeout)
+      assert.strictEqual(measurementRow.network_retrieval_status_code, measurement.networkRetrieval.statusCode)
+      assert.strictEqual(measurementRow.network_retrieval_timeout, measurement.networkRetrieval.timeout)
+      assert.strictEqual(measurementRow.network_retrieval_car_too_large, measurement.networkRetrieval.carTooLarge)
+      assert.strictEqual(measurementRow.network_retrieval_end_at, measurement.networkRetrieval.endAt)
+      assert.strictEqual(measurementRow.network_retrieval_protocol, measurement.networkRetrieval.protocol)
     })
 
     it('allows older format with walletAddress', async () => {
