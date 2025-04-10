@@ -204,7 +204,10 @@ describe('Routes', () => {
       assert.strictEqual(measurementRow.network_retrieval_status_code, measurement.networkRetrieval.statusCode)
       assert.strictEqual(measurementRow.network_retrieval_timeout, measurement.networkRetrieval.timeout)
       assert.strictEqual(measurementRow.network_retrieval_car_too_large, measurement.networkRetrieval.carTooLarge)
-      assert.strictEqual(measurementRow.network_retrieval_end_at, measurement.networkRetrieval.endAt)
+      assert.strictEqual(
+        measurementRow.network_retrieval_end_at.toJSON(),
+        measurement.networkRetrieval.endAt.toJSON()
+      )
       assert.strictEqual(measurementRow.network_retrieval_protocol, measurement.networkRetrieval.protocol)
     })
 
