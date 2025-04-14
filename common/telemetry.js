@@ -25,6 +25,13 @@ const networkInfoWriteClient = influx.getWriteApi(
   's' // precision
 )
 
+// Add new write client for batch metrics
+const batchMetricsWriteClient = influx.getWriteApi(
+  'Filecoin Station', // org
+  'spark-batch-metrics', // bucket
+  'ns' // precision
+)
+
 setInterval(() => {
   publishWriteClient.flush().catch(console.error)
   networkInfoWriteClient.flush().catch(console.error)
