@@ -39,7 +39,7 @@ const VALID_MEASUREMENT = {
   minerId: 'f02abc',
   providerId: 'provider-pubkey',
   indexerResult: 'OK',
-  networkRetrieval: {
+  alternativeProviderCheck: {
     statusCode: 200,
     timeout: false,
     carTooLarge: false,
@@ -201,14 +201,14 @@ describe('Routes', () => {
       assert.strictEqual(measurementRow.miner_id, measurement.minerId)
       assert.strictEqual(measurementRow.provider_id, measurement.providerId)
       assert.strictEqual(measurementRow.station_id, measurement.stationId)
-      assert.strictEqual(measurementRow.network_retrieval_status_code, measurement.networkRetrieval.statusCode)
-      assert.strictEqual(measurementRow.network_retrieval_timeout, measurement.networkRetrieval.timeout)
-      assert.strictEqual(measurementRow.network_retrieval_car_too_large, measurement.networkRetrieval.carTooLarge)
+      assert.strictEqual(measurementRow.alternative_provider_check_status_code, measurement.alternativeProviderCheck.statusCode)
+      assert.strictEqual(measurementRow.alternative_provider_check_timeout, measurement.alternativeProviderCheck.timeout)
+      assert.strictEqual(measurementRow.alternative_provider_check_car_too_large, measurement.alternativeProviderCheck.carTooLarge)
       assert.strictEqual(
-        measurementRow.network_retrieval_end_at.toJSON(),
-        measurement.networkRetrieval.endAt.toJSON()
+        measurementRow.alternative_provider_check_end_at.toJSON(),
+        measurement.alternativeProviderCheck.endAt.toJSON()
       )
-      assert.strictEqual(measurementRow.network_retrieval_protocol, measurement.networkRetrieval.protocol)
+      assert.strictEqual(measurementRow.alternative_provider_check_protocol, measurement.alternativeProviderCheck.protocol)
     })
 
     it('allows older format with walletAddress', async () => {
