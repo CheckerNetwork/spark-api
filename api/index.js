@@ -98,13 +98,13 @@ const createMeasurement = async (req, res, client) => {
   validate(measurement, 'stationId', { type: 'string', required: true })
   assert(measurement.stationId.match(/^[0-9a-fA-F]{88}$/), 400, 'Invalid Station ID')
 
-  if (measurement.networkRetrieval) {
-    validate(measurement, 'networkRetrieval', { type: 'object', required: false })
-    validate(measurement.networkRetrieval, 'statusCode', { type: 'number', required: false })
-    validate(measurement.networkRetrieval, 'timeout', { type: 'boolean', required: false })
-    validate(measurement.networkRetrieval, 'carTooLarge', { type: 'boolean', required: false })
-    validate(measurement.networkRetrieval, 'endAt', { type: 'date', required: false })
-    validate(measurement.networkRetrieval, 'protocol', { type: 'string', required: false })
+  if (measurement.alternativeProviderCheck) {
+    validate(measurement, 'alternativeProviderCheck', { type: 'object', required: false })
+    validate(measurement.alternativeProviderCheck, 'statusCode', { type: 'number', required: false })
+    validate(measurement.alternativeProviderCheck, 'timeout', { type: 'boolean', required: false })
+    validate(measurement.alternativeProviderCheck, 'carTooLarge', { type: 'boolean', required: false })
+    validate(measurement.alternativeProviderCheck, 'endAt', { type: 'date', required: false })
+    validate(measurement.alternativeProviderCheck, 'protocol', { type: 'string', required: false })
   }
 
   const inetGroup = await mapRequestToInetGroup(client, req)
@@ -133,11 +133,11 @@ const createMeasurement = async (req, res, client) => {
         indexer_result,
         miner_id,
         provider_id,
-        network_retrieval_status_code,
-        network_retrieval_timeout,
-        network_retrieval_car_too_large,
-        network_retrieval_end_at,
-        network_retrieval_protocol,
+        alternative_provider_check_status_code,
+        alternative_provider_check_timeout,
+        alternative_provider_check_car_too_large,
+        alternative_provider_check_end_at,
+        alternative_provider_check_protocol,
         completed_at_round
       )
       SELECT
@@ -169,11 +169,11 @@ const createMeasurement = async (req, res, client) => {
     measurement.indexerResult,
     measurement.minerId,
     measurement.providerId,
-    measurement.networkRetrieval?.statusCode,
-    measurement.networkRetrieval?.timeout,
-    measurement.networkRetrieval?.carTooLarge ?? false,
-    measurement.networkRetrieval?.endAt,
-    measurement.networkRetrieval?.protocol
+    measurement.alternativeProviderCheck?.statusCode,
+    measurement.alternativeProviderCheck?.timeout,
+    measurement.alternativeProviderCheck?.carTooLarge ?? false,
+    measurement.alternativeProviderCheck?.endAt,
+    measurement.alternativeProviderCheck?.protocol
   ])
   json(res, { id: rows[0].id })
 }
@@ -210,12 +210,12 @@ const getMeasurement = async (req, res, client, measurementId) => {
     byteLength: resultRow.byte_length,
     carTooLarge: resultRow.car_too_large,
     attestation: resultRow.attestation,
-    networkRetrieval: {
-      statusCode: resultRow.network_retrieval_status_code,
-      timeout: resultRow.network_retrieval_timeout,
-      carTooLarge: resultRow.network_retrieval_car_too_large,
-      endAt: resultRow.network_retrieval_end_at,
-      protocol: resultRow.network_retrieval_protocol
+    alternativeProviderCheck: {
+      statusCode: resultRow.alternative_provider_check_status_code,
+      timeout: resultRow.alternative_provider_check_timeout,
+      carTooLarge: resultRow.alternative_provider_check_car_too_large,
+      endAt: resultRow.alternative_provider_check_end_at,
+      protocol: resultRow.alternative_provider_check_protocol
     }
   })
 }
