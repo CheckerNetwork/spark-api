@@ -98,6 +98,15 @@ const createMeasurement = async (req, res, client) => {
   validate(measurement, 'stationId', { type: 'string', required: true })
   assert(measurement.stationId.match(/^[0-9a-fA-F]{88}$/), 400, 'Invalid Station ID')
 
+  if (measurement.alternativeProviderCheck) {
+    validate(measurement, 'alternativeProviderCheck', { type: 'object', required: false })
+    validate(measurement.alternativeProviderCheck, 'statusCode', { type: 'number', required: false })
+    validate(measurement.alternativeProviderCheck, 'timeout', { type: 'boolean', required: false })
+    validate(measurement.alternativeProviderCheck, 'carTooLarge', { type: 'boolean', required: false })
+    validate(measurement.alternativeProviderCheck, 'endAt', { type: 'date', required: false })
+    validate(measurement.alternativeProviderCheck, 'protocol', { type: 'string', required: false })
+  }
+
   const inetGroup = await mapRequestToInetGroup(client, req)
   logNetworkInfo(req.headers, measurement.stationId, recordNetworkInfoTelemetry)
 
@@ -124,10 +133,15 @@ const createMeasurement = async (req, res, client) => {
         indexer_result,
         miner_id,
         provider_id,
+        alternative_provider_check_status_code,
+        alternative_provider_check_timeout,
+        alternative_provider_check_car_too_large,
+        alternative_provider_check_end_at,
+        alternative_provider_check_protocol,
         completed_at_round
       )
       SELECT
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
         id as completed_at_round
       FROM spark_rounds
       ORDER BY id DESC
@@ -154,7 +168,12 @@ const createMeasurement = async (req, res, client) => {
     measurement.carChecksum,
     measurement.indexerResult,
     measurement.minerId,
-    measurement.providerId
+    measurement.providerId,
+    measurement.alternativeProviderCheck?.statusCode,
+    measurement.alternativeProviderCheck?.timeout,
+    measurement.alternativeProviderCheck?.carTooLarge ?? false,
+    measurement.alternativeProviderCheck?.endAt,
+    measurement.alternativeProviderCheck?.protocol
   ])
   json(res, { id: rows[0].id })
 }
@@ -190,7 +209,14 @@ const getMeasurement = async (req, res, client, measurementId) => {
     endAt: resultRow.end_at,
     byteLength: resultRow.byte_length,
     carTooLarge: resultRow.car_too_large,
-    attestation: resultRow.attestation
+    attestation: resultRow.attestation,
+    alternativeProviderCheck: {
+      statusCode: resultRow.alternative_provider_check_status_code,
+      timeout: resultRow.alternative_provider_check_timeout,
+      carTooLarge: resultRow.alternative_provider_check_car_too_large,
+      endAt: resultRow.alternative_provider_check_end_at,
+      protocol: resultRow.alternative_provider_check_protocol
+    }
   })
 }
 
