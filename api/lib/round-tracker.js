@@ -11,7 +11,7 @@ export const TASKS_EXECUTED_PER_ROUND = 250_000
 // TASKS_EXECUTED_PER_ROUND and the number of tasks executed in the last round.
 export const BASELINE_TASKS_PER_ROUND = 1000
 export const BASELINE_TASKS_PER_NODE = 15
-export const MAX_TASKS_PER_NODE_LIMIT = 100
+export const MAX_TASKS_PER_NODE_LIMIT = 50
 
 export const ROUND_TASKS_TO_NODE_TASKS_RATIO = BASELINE_TASKS_PER_ROUND / BASELINE_TASKS_PER_NODE
 
