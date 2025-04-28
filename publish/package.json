@@ -18,7 +18,7 @@
     "cancel-stuck-transactions": "^4.1.4",
     "ethers": "^6.13.7",
     "p-retry": "^6.2.1",
-    "pg": "^8.15.5"
+    "pg": "^8.15.6"
   },
   "devDependencies": {
     "@flydotio/dockerfile": "^0.7.10",
