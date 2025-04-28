@@ -37,7 +37,13 @@ export const publish = async ({
       provider_id,
       cid,
       provider_address,
-      protocol
+      protocol,
+      alternative_provider_check_status_code,
+      alternative_provider_check_timeout,
+      alternative_provider_check_car_too_large,
+      alternative_provider_check_end_at,
+      alternative_provider_check_protocol,
+      alternative_provider_check_provider_id
     FROM measurements
     LIMIT $1
   `, [
