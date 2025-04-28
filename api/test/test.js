@@ -44,7 +44,8 @@ const VALID_MEASUREMENT = {
     timeout: false,
     carTooLarge: false,
     endAt: new Date(),
-    protocol: 'graphsync'
+    protocol: 'graphsync',
+    providerId: 'alt-provider-pubkey'
   }
 }
 
@@ -209,6 +210,7 @@ describe('Routes', () => {
         measurement.alternativeProviderCheck.endAt.toJSON()
       )
       assert.strictEqual(measurementRow.alternative_provider_check_protocol, measurement.alternativeProviderCheck.protocol)
+      assert.strictEqual(measurementRow.alternative_provider_check_provider_id, measurement.alternativeProviderCheck.providerId)
     })
 
     it('allows older format with walletAddress', async () => {

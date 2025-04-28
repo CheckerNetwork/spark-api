@@ -105,6 +105,7 @@ const createMeasurement = async (req, res, client) => {
     validate(measurement.alternativeProviderCheck, 'carTooLarge', { type: 'boolean', required: false })
     validate(measurement.alternativeProviderCheck, 'endAt', { type: 'date', required: false })
     validate(measurement.alternativeProviderCheck, 'protocol', { type: 'string', required: false })
+    validate(measurement.alternativeProviderCheck, 'providerId', { type: 'string', required: false })
   }
 
   const inetGroup = await mapRequestToInetGroup(client, req)
@@ -138,10 +139,11 @@ const createMeasurement = async (req, res, client) => {
         alternative_provider_check_car_too_large,
         alternative_provider_check_end_at,
         alternative_provider_check_protocol,
+        alternative_provider_check_provider_id,
         completed_at_round
       )
       SELECT
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27
         id as completed_at_round
       FROM spark_rounds
       ORDER BY id DESC
@@ -173,7 +175,8 @@ const createMeasurement = async (req, res, client) => {
     measurement.alternativeProviderCheck?.timeout,
     measurement.alternativeProviderCheck?.carTooLarge ?? false,
     measurement.alternativeProviderCheck?.endAt,
-    measurement.alternativeProviderCheck?.protocol
+    measurement.alternativeProviderCheck?.protocol,
+    measurement.alternativeProviderCheck?.provider_id
   ])
   json(res, { id: rows[0].id })
 }
@@ -215,7 +218,8 @@ const getMeasurement = async (req, res, client, measurementId) => {
       timeout: resultRow.alternative_provider_check_timeout,
       carTooLarge: resultRow.alternative_provider_check_car_too_large,
       endAt: resultRow.alternative_provider_check_end_at,
-      protocol: resultRow.alternative_provider_check_protocol
+      protocol: resultRow.alternative_provider_check_protocol,
+      providerId: resultRow.alternative_provider_check_provider_id
     }
   })
 }
