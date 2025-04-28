@@ -176,7 +176,7 @@ const createMeasurement = async (req, res, client) => {
     measurement.alternativeProviderCheck?.carTooLarge ?? false,
     measurement.alternativeProviderCheck?.endAt,
     measurement.alternativeProviderCheck?.protocol,
-    measurement.alternativeProviderCheck?.provider_id
+    measurement.alternativeProviderCheck?.providerId
   ])
   json(res, { id: rows[0].id })
 }
