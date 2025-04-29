@@ -100,12 +100,12 @@ const createMeasurement = async (req, res, client) => {
 
   if (measurement.alternativeProviderCheck) {
     validate(measurement, 'alternativeProviderCheck', { type: 'object', required: false })
-    validate(measurement.alternativeProviderCheck, 'statusCode', { type: 'number', required: false })
-    validate(measurement.alternativeProviderCheck, 'timeout', { type: 'boolean', required: false })
-    validate(measurement.alternativeProviderCheck, 'carTooLarge', { type: 'boolean', required: false })
-    validate(measurement.alternativeProviderCheck, 'endAt', { type: 'date', required: false })
-    validate(measurement.alternativeProviderCheck, 'protocol', { type: 'string', required: false })
-    validate(measurement.alternativeProviderCheck, 'providerId', { type: 'string', required: false })
+    validate(measurement.alternativeProviderCheck, 'alternativeProviderCheck.statusCode', { type: 'number', required: false })
+    validate(measurement.alternativeProviderCheck, 'alternativeProviderCheck.timeout', { type: 'boolean', required: false })
+    validate(measurement.alternativeProviderCheck, 'alternativeProviderCheck.carTooLarge', { type: 'boolean', required: false })
+    validate(measurement.alternativeProviderCheck, 'alternativeProviderCheck.endAt', { type: 'date', required: false })
+    validate(measurement.alternativeProviderCheck, 'alternativeProviderCheck.protocol', { type: 'string', required: false })
+    validate(measurement.alternativeProviderCheck, 'alternativeProviderCheck.providerId', { type: 'string', required: false })
   }
 
   const inetGroup = await mapRequestToInetGroup(client, req)
