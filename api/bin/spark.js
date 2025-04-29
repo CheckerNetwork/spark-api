@@ -27,7 +27,7 @@ assert(DEAL_INGESTER_TOKEN, 'DEAL_INGESTER_TOKEN is required')
 const client = new pg.Pool({
   connectionString: DATABASE_URL,
   // allow the pool to close all connections and become empty
-  // min: 0,
+  min: 0,
   // this values should correlate with service concurrency hard_limit configured in fly.toml
   // and must take into account the connection limit of our PG server, see
   // https://fly.io/docs/postgres/managing/configuration-tuning/
