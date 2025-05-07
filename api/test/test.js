@@ -38,7 +38,15 @@ const VALID_MEASUREMENT = {
   carChecksum: 'somehash',
   minerId: 'f02abc',
   providerId: 'provider-pubkey',
-  indexerResult: 'OK'
+  indexerResult: 'OK',
+  alternativeProviderCheck: {
+    statusCode: 200,
+    timeout: false,
+    carTooLarge: false,
+    endAt: new Date(),
+    protocol: 'graphsync',
+    providerId: 'alt-provider-pubkey'
+  }
 }
 
 const assertResponseStatus = async (res, status) => {
@@ -194,6 +202,15 @@ describe('Routes', () => {
       assert.strictEqual(measurementRow.miner_id, measurement.minerId)
       assert.strictEqual(measurementRow.provider_id, measurement.providerId)
       assert.strictEqual(measurementRow.station_id, measurement.stationId)
+      assert.strictEqual(measurementRow.alternative_provider_check_status_code, measurement.alternativeProviderCheck.statusCode)
+      assert.strictEqual(measurementRow.alternative_provider_check_timeout, measurement.alternativeProviderCheck.timeout)
+      assert.strictEqual(measurementRow.alternative_provider_check_car_too_large, measurement.alternativeProviderCheck.carTooLarge)
+      assert.strictEqual(
+        measurementRow.alternative_provider_check_end_at.toJSON(),
+        measurement.alternativeProviderCheck.endAt.toJSON()
+      )
+      assert.strictEqual(measurementRow.alternative_provider_check_protocol, measurement.alternativeProviderCheck.protocol)
+      assert.strictEqual(measurementRow.alternative_provider_check_provider_id, measurement.alternativeProviderCheck.providerId)
     })
 
     it('allows older format with walletAddress', async () => {

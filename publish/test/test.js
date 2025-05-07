@@ -164,8 +164,17 @@ describe('integration', () => {
       carTooLarge: true,
       minerId: 'f02abc',
       providerId: 'provider-pubkey',
-      round: 42
-    }]
+      round: 42,
+      alternativeProviderCheck: {
+        statusCode: 200,
+        timeout: false,
+        carTooLarge: false,
+        endAt: new Date(),
+        protocol: 'graphsync',
+        providerId: 'alt-provider-pubkey'
+      }
+    }
+    ]
 
     for (const measurement of measurements) {
       await insertMeasurement(client, measurement)

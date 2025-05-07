@@ -37,7 +37,15 @@ export const publish = async ({
       provider_id,
       cid,
       provider_address,
-      protocol
+      protocol,
+      jsonb_build_object(
+        'status_code', alternative_provider_check_status_code,
+        'timeout', alternative_provider_check_timeout,
+        'car_too_large', alternative_provider_check_car_too_large,
+        'end_at', alternative_provider_check_end_at,
+        'protocol', alternative_provider_check_protocol,
+        'provider_id', alternative_provider_check_provider_id
+      ) AS alternative_provider_check
     FROM measurements
     LIMIT $1
   `, [
