@@ -21,7 +21,7 @@
     "@filecoin-station/spark-impact-evaluator": "^1.2.4",
     "@glif/filecoin-address": "^4.0.0",
     "@influxdata/influxdb-client": "^1.35.0",
-    "@sentry/node": "^9.20.0",
+    "@sentry/node": "^9.22.0",
     "compare-versions": "^6.1.1",
     "ethers": "^6.14.1",
     "http-assert": "^1.5.0",
