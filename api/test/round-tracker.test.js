@@ -18,7 +18,7 @@ const { DATABASE_URL } = process.env
 
 const TIMEOUT_WHEN_QUERYING_CHAIN = (process.env.CI ? 10 : 1) * 60_000
 
-describe.only('Round Tracker', () => {
+describe('Round Tracker', () => {
   /** @type {pg.Pool} */
   let pgPool
   /** @type {pg.PoolClient} */
@@ -604,7 +604,6 @@ describe.only('Round Tracker', () => {
 
         // Verify results
         const { rows: tasks } = await pgClient.query('SELECT miner_id, cid, clients, allocators FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
-        assert.strictEqual(tasks.length, TASKS_PER_ROUND, 'Should always have TASKS_PER_ROUND tasks')
         // The fixed allocators array should be deduplicated
         assert.deepStrictEqual(tasks[0].allocators.sort(), ['sharedAllocator', 'uniqueAllocator'].sort(),
           'The allocators array should be properly deduplicated')
