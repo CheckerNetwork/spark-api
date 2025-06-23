@@ -4,10 +4,9 @@ import { once } from 'node:events'
 import assert, { AssertionError } from 'node:assert'
 import pg from 'pg'
 import {
-  BASELINE_TASKS_PER_ROUND,
   maybeCreateSparkRound,
   mapCurrentMeridianRoundToSparkRound,
-  BASELINE_TASKS_PER_NODE
+  TASKS_PER_ROUND
 } from '../lib/round-tracker.js'
 import { delegatedFromEthAddress, CoinType } from '@glif/filecoin-address'
 import { createTelemetryRecorderStub } from '../../test-helpers/platform-test-helpers.js'
@@ -506,10 +505,10 @@ describe('Routes', () => {
 
       assert.deepStrictEqual(details, {
         roundId: '2',
-        maxTasksPerNode: BASELINE_TASKS_PER_NODE,
+        maxTasksPerNode: TASKS_PER_ROUND,
         startEpoch: '621'
       })
-      assert.strictEqual(retrievalTasks.length, BASELINE_TASKS_PER_ROUND)
+      assert.strictEqual(retrievalTasks.length, TASKS_PER_ROUND)
 
       for (const task of retrievalTasks) {
         assert.equal(typeof task.cid, 'string', 'all tasks have "cid"')
@@ -531,10 +530,10 @@ describe('Routes', () => {
 
       assert.deepStrictEqual(details, {
         roundId: '1',
-        maxTasksPerNode: BASELINE_TASKS_PER_NODE,
+        maxTasksPerNode: TASKS_PER_ROUND,
         startEpoch: '321'
       })
-      assert.strictEqual(retrievalTasks.length, BASELINE_TASKS_PER_ROUND)
+      assert.strictEqual(retrievalTasks.length, TASKS_PER_ROUND)
     })
 
     it('returns 404 for unknown round index', async () => {

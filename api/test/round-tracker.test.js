@@ -1,16 +1,12 @@
 import assert from 'node:assert'
 import pg from 'pg'
 import {
-  BASELINE_TASKS_PER_ROUND,
-  BASELINE_TASKS_PER_NODE,
-  TASKS_EXECUTED_PER_ROUND,
-  ROUND_TASKS_TO_NODE_TASKS_RATIO,
+  TASKS_PER_ROUND,
   defineTasksForRound,
   getRoundStartEpoch,
   getRoundStartEpochWithBackoff,
   mapCurrentMeridianRoundToSparkRound,
-  startRoundTracker,
-  MAX_TASKS_PER_NODE_LIMIT
+  startRoundTracker
 } from '../lib/round-tracker.js'
 import { migrate } from '../../migrations/index.js'
 import { assertApproximately } from '../../test-helpers/assert.js'
@@ -22,7 +18,7 @@ const { DATABASE_URL } = process.env
 
 const TIMEOUT_WHEN_QUERYING_CHAIN = (process.env.CI ? 10 : 1) * 60_000
 
-describe('Round Tracker', () => {
+describe.only('Round Tracker', () => {
   /** @type {pg.Pool} */
   let pgPool
   /** @type {pg.PoolClient} */
@@ -81,11 +77,9 @@ describe('Round Tracker', () => {
         [
           {
             _point: 'round',
-            current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
-            current_round_task_count: `${Math.floor(
-              BASELINE_TASKS_PER_NODE * ROUND_TASKS_TO_NODE_TASKS_RATIO
-            )}i`,
-            current_round_node_max_task_count: `${BASELINE_TASKS_PER_NODE}i`,
+            current_round_measurement_count_target: `${TASKS_PER_ROUND}i`,
+            current_round_task_count: `${TASKS_PER_ROUND}i`,
+            current_round_node_max_task_count: `${TASKS_PER_ROUND}i`,
             previous_round_measurement_count: '0i',
             previous_round_node_max_task_count: '0i'
           }
@@ -112,13 +106,11 @@ describe('Round Tracker', () => {
         telemetry.map(p => ({ _point: getPointName(p), ...p.fields }))[1],
         {
           _point: 'round',
-          current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
-          current_round_task_count: `${Math.floor(
-            BASELINE_TASKS_PER_NODE * ROUND_TASKS_TO_NODE_TASKS_RATIO
-          )}i`,
-          current_round_node_max_task_count: `${BASELINE_TASKS_PER_NODE}i`,
+          current_round_measurement_count_target: `${TASKS_PER_ROUND}i`,
+          current_round_task_count: `${TASKS_PER_ROUND}i`,
+          current_round_node_max_task_count: `${TASKS_PER_ROUND}i`,
           previous_round_measurement_count: '0i',
-          previous_round_node_max_task_count: '15i'
+          previous_round_node_max_task_count: '100i'
         }
       )
     })
@@ -139,11 +131,9 @@ describe('Round Tracker', () => {
         [
           {
             _point: 'round',
-            current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
-            current_round_task_count: `${Math.floor(
-              BASELINE_TASKS_PER_NODE * ROUND_TASKS_TO_NODE_TASKS_RATIO
-            )}i`,
-            current_round_node_max_task_count: `${BASELINE_TASKS_PER_NODE}i`,
+            current_round_measurement_count_target: `${TASKS_PER_ROUND}i`,
+            current_round_task_count: `${TASKS_PER_ROUND}i`,
+            current_round_node_max_task_count: `${TASKS_PER_ROUND}i`,
             previous_round_measurement_count: '0i',
             previous_round_node_max_task_count: '0i'
           }
@@ -188,13 +178,11 @@ describe('Round Tracker', () => {
         telemetry.map(p => ({ _point: getPointName(p), ...p.fields }))[1],
         {
           _point: 'round',
-          current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
-          current_round_task_count: `${Math.floor(
-            BASELINE_TASKS_PER_NODE * ROUND_TASKS_TO_NODE_TASKS_RATIO
-          )}i`,
-          current_round_node_max_task_count: `${BASELINE_TASKS_PER_NODE}i`,
+          current_round_measurement_count_target: `${TASKS_PER_ROUND}i`,
+          current_round_task_count: `${TASKS_PER_ROUND}i`,
+          current_round_node_max_task_count: `${TASKS_PER_ROUND}i`,
           previous_round_measurement_count: '0i',
-          previous_round_node_max_task_count: '15i'
+          previous_round_node_max_task_count: '100i'
         }
       )
     })
@@ -224,11 +212,9 @@ describe('Round Tracker', () => {
         [
           {
             _point: 'round',
-            current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
-            current_round_task_count: `${Math.floor(
-              BASELINE_TASKS_PER_NODE * ROUND_TASKS_TO_NODE_TASKS_RATIO
-            )}i`,
-            current_round_node_max_task_count: `${BASELINE_TASKS_PER_NODE}i`,
+            current_round_measurement_count_target: `${TASKS_PER_ROUND}i`,
+            current_round_task_count: `${TASKS_PER_ROUND}i`,
+            current_round_node_max_task_count: `${TASKS_PER_ROUND}i`,
             previous_round_measurement_count: '0i',
             previous_round_node_max_task_count: '0i'
           }
@@ -261,7 +247,7 @@ describe('Round Tracker', () => {
       })
 
       const { rows: tasks } = await pgClient.query('SELECT * FROM retrieval_tasks ORDER BY id')
-      assert.strictEqual(tasks.length, BASELINE_TASKS_PER_ROUND)
+      assert.strictEqual(tasks.length, TASKS_PER_ROUND)
       for (const [ix, t] of tasks.entries()) {
         assert.strictEqual(BigInt(t.round_id), sparkRoundNumber)
         assert.strictEqual(typeof t.cid, 'string', `task#${ix} cid`)
@@ -275,11 +261,9 @@ describe('Round Tracker', () => {
         [
           {
             _point: 'round',
-            current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
-            current_round_task_count: `${Math.floor(
-              BASELINE_TASKS_PER_NODE * ROUND_TASKS_TO_NODE_TASKS_RATIO
-            )}i`,
-            current_round_node_max_task_count: `${BASELINE_TASKS_PER_NODE}i`,
+            current_round_measurement_count_target: `${TASKS_PER_ROUND}i`,
+            current_round_task_count: `${TASKS_PER_ROUND}i`,
+            current_round_node_max_task_count: `${TASKS_PER_ROUND}i`,
             previous_round_measurement_count: '0i',
             previous_round_node_max_task_count: '0i'
           }
@@ -310,7 +294,7 @@ describe('Round Tracker', () => {
       assert.strictEqual(firstRoundNumber, secondRoundNumber)
 
       const { rows: tasks } = await pgClient.query('SELECT * FROM retrieval_tasks ORDER BY id')
-      assert.strictEqual(tasks.length, BASELINE_TASKS_PER_ROUND)
+      assert.strictEqual(tasks.length, TASKS_PER_ROUND)
       for (const t of tasks) {
         assert.strictEqual(BigInt(t.round_id), firstRoundNumber)
       }
@@ -319,11 +303,9 @@ describe('Round Tracker', () => {
         [
           {
             _point: 'round',
-            current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
-            current_round_task_count: `${Math.floor(
-              BASELINE_TASKS_PER_NODE * ROUND_TASKS_TO_NODE_TASKS_RATIO
-            )}i`,
-            current_round_node_max_task_count: `${BASELINE_TASKS_PER_NODE}i`,
+            current_round_measurement_count_target: `${TASKS_PER_ROUND}i`,
+            current_round_task_count: `${TASKS_PER_ROUND}i`,
+            current_round_node_max_task_count: `${TASKS_PER_ROUND}i`,
             previous_round_measurement_count: '0i',
             previous_round_node_max_task_count: '0i'
           }
@@ -347,220 +329,20 @@ describe('Round Tracker', () => {
       assert.strictEqual(sparkRoundNumber, 1n)
       const sparkRounds = (await pgClient.query('SELECT * FROM spark_rounds ORDER BY id')).rows
       assert.deepStrictEqual(sparkRounds.map(r => r.id), ['1'])
-      assert.strictEqual(sparkRounds[0].max_tasks_per_node, 15)
+      assert.strictEqual(sparkRounds[0].max_tasks_per_node, 100)
       assert.deepStrictEqual(
         telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
         [
           {
             _point: 'round',
-            current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
-            current_round_task_count: `${Math.floor(
-              BASELINE_TASKS_PER_NODE * ROUND_TASKS_TO_NODE_TASKS_RATIO
-            )}i`,
-            current_round_node_max_task_count: `${BASELINE_TASKS_PER_NODE}i`,
+            current_round_measurement_count_target: `${TASKS_PER_ROUND}i`,
+            current_round_task_count: `${TASKS_PER_ROUND}i`,
+            current_round_node_max_task_count: `${TASKS_PER_ROUND}i`,
             previous_round_measurement_count: '0i',
             previous_round_node_max_task_count: '0i'
           }
         ]
       )
-    })
-
-    describe('task scaling', async () => {
-      it('uses baseline values for the first round', async () => {
-        const { recordTelemetry, telemetry } = createTelemetryRecorderStub()
-        const sparkRoundNumber = await mapCurrentMeridianRoundToSparkRound({
-          meridianContractAddress: '0x1a',
-          meridianRoundIndex: 120n,
-          roundStartEpoch: 321n,
-          pgClient,
-          recordTelemetry
-        })
-        const { rows: [sparkRound] } = await pgClient.query(
-          'SELECT * FROM spark_rounds WHERE id = $1',
-          [sparkRoundNumber]
-        )
-        assert.strictEqual(sparkRound.max_tasks_per_node, BASELINE_TASKS_PER_NODE)
-        const { rows: retrievalTasks } = await pgClient.query(
-          'SELECT * FROM retrieval_tasks'
-        )
-        assert.strictEqual(retrievalTasks.length, BASELINE_TASKS_PER_ROUND)
-        assert.deepStrictEqual(
-          telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
-          [
-            {
-              _point: 'round',
-              current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
-              current_round_task_count: `${Math.floor(
-                BASELINE_TASKS_PER_NODE * ROUND_TASKS_TO_NODE_TASKS_RATIO
-              )}i`,
-              current_round_node_max_task_count: `${BASELINE_TASKS_PER_NODE}i`,
-              previous_round_measurement_count: '0i',
-              previous_round_node_max_task_count: '0i'
-            }
-          ]
-        )
-      })
-      it('uses baseline values when the previous round was empty', async () => {
-        await mapCurrentMeridianRoundToSparkRound({
-          meridianContractAddress: '0x1a',
-          meridianRoundIndex: 120n,
-          roundStartEpoch: 321n,
-          pgClient,
-          recordTelemetry: createTelemetryRecorderStub().recordTelemetry
-        })
-        const { recordTelemetry, telemetry } = createTelemetryRecorderStub()
-        const sparkRoundNumber = await mapCurrentMeridianRoundToSparkRound({
-          meridianContractAddress: '0x1a',
-          meridianRoundIndex: 121n,
-          roundStartEpoch: 321n,
-          pgClient,
-          recordTelemetry
-        })
-        const { rows: [sparkRound] } = await pgClient.query(
-          'SELECT * FROM spark_rounds WHERE id = $1',
-          [sparkRoundNumber]
-        )
-        assert.strictEqual(sparkRound.max_tasks_per_node, BASELINE_TASKS_PER_NODE)
-        const { rows: retrievalTasks } = await pgClient.query(
-          'SELECT * FROM retrieval_tasks WHERE round_id = $1',
-          [sparkRoundNumber]
-        )
-        assert.strictEqual(retrievalTasks.length, BASELINE_TASKS_PER_ROUND)
-        assert.deepStrictEqual(
-          telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
-          [
-            {
-              _point: 'round',
-              current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
-              current_round_task_count: `${Math.floor(
-                BASELINE_TASKS_PER_NODE * ROUND_TASKS_TO_NODE_TASKS_RATIO
-              )}i`,
-              current_round_node_max_task_count: `${BASELINE_TASKS_PER_NODE}i`,
-              previous_round_measurement_count: '0i',
-              previous_round_node_max_task_count: '15i'
-            }
-          ]
-        )
-      })
-
-      for (const measurementsFactor of [2, 0.5]) {
-        it(`scales ${measurementsFactor > 1 ? 'down' : 'up'} the task count to reach desired tasks executed`, async () => {
-          const prevSparkRoundNumber = await mapCurrentMeridianRoundToSparkRound({
-            meridianContractAddress: '0x1a',
-            meridianRoundIndex: 120n,
-            roundStartEpoch: 321n,
-            pgClient,
-            recordTelemetry: createTelemetryRecorderStub().recordTelemetry
-          })
-          await pgClient.query(
-            'UPDATE spark_rounds SET measurement_count = $1 WHERE id = $2',
-            [TASKS_EXECUTED_PER_ROUND * measurementsFactor, prevSparkRoundNumber]
-          )
-          const { recordTelemetry, telemetry } = createTelemetryRecorderStub()
-          const sparkRoundNumber = await mapCurrentMeridianRoundToSparkRound({
-            meridianContractAddress: '0x1a',
-            meridianRoundIndex: 121n,
-            roundStartEpoch: 321n,
-            pgClient,
-            recordTelemetry
-          })
-          const { rows: [sparkRound] } = await pgClient.query(
-            'SELECT * FROM spark_rounds WHERE id = $1',
-            [sparkRoundNumber]
-          )
-          assert.strictEqual(sparkRound.max_tasks_per_node, Math.floor(BASELINE_TASKS_PER_NODE / measurementsFactor))
-          const { rows: retrievalTasks } = await pgClient.query(
-            'SELECT * FROM retrieval_tasks WHERE round_id = $1',
-            [sparkRoundNumber]
-          )
-          const expectedRetrievalTasksCount = Math.floor(
-            Number(
-              BigInt(BASELINE_TASKS_PER_NODE) *
-              BigInt(TASKS_EXECUTED_PER_ROUND) /
-              BigInt(TASKS_EXECUTED_PER_ROUND * measurementsFactor)
-            ) *
-            ROUND_TASKS_TO_NODE_TASKS_RATIO
-          )
-          assert.strictEqual(retrievalTasks.length, expectedRetrievalTasksCount)
-          if (measurementsFactor < 1) {
-            assert(retrievalTasks.length > BASELINE_TASKS_PER_ROUND)
-          } else {
-            assert(retrievalTasks.length < BASELINE_TASKS_PER_ROUND)
-          }
-          const { rows: [prevSparkRound] } = await pgClient.query(
-            'SELECT * FROM spark_rounds WHERE id = $1',
-            [prevSparkRoundNumber]
-          )
-          assert.deepStrictEqual(
-            telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
-            [
-              {
-                _point: 'round',
-                current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
-                current_round_task_count: `${expectedRetrievalTasksCount}i`,
-                current_round_node_max_task_count: `${Math.floor(prevSparkRound.max_tasks_per_node / measurementsFactor)}i`,
-                previous_round_measurement_count: `${TASKS_EXECUTED_PER_ROUND * measurementsFactor}i`,
-                previous_round_node_max_task_count: '15i'
-              }
-            ]
-          )
-        })
-      }
-
-      it('sets maxTasksPerNode to at least 1', async () => {
-        const prevSparkRoundNumber = await mapCurrentMeridianRoundToSparkRound({
-          meridianContractAddress: '0x1a',
-          meridianRoundIndex: 120n,
-          roundStartEpoch: 321n,
-          pgClient,
-          recordTelemetry: createTelemetryRecorderStub().recordTelemetry
-        })
-        await pgClient.query(
-          'UPDATE spark_rounds SET measurement_count = $1 WHERE id = $2',
-          [TASKS_EXECUTED_PER_ROUND * 1000, prevSparkRoundNumber]
-        )
-        // It should calculate the task count as 0 and then choose 1 instead
-        const { recordTelemetry } = createTelemetryRecorderStub()
-        const sparkRoundNumber = await mapCurrentMeridianRoundToSparkRound({
-          meridianContractAddress: '0x1a',
-          meridianRoundIndex: 121n,
-          roundStartEpoch: 321n,
-          pgClient,
-          recordTelemetry
-        })
-        const { rows: [sparkRound] } = await pgClient.query(
-          'SELECT * FROM spark_rounds WHERE id = $1',
-          [sparkRoundNumber]
-        )
-        assert.strictEqual(sparkRound.max_tasks_per_node, 1)
-      })
-      it('has an upper limit for maxTasksPerNode', async () => {
-        const prevSparkRoundNumber = await mapCurrentMeridianRoundToSparkRound({
-          meridianContractAddress: '0x1a',
-          meridianRoundIndex: 120n,
-          roundStartEpoch: 321n,
-          pgClient,
-          recordTelemetry: createTelemetryRecorderStub().recordTelemetry
-        })
-        await pgClient.query(
-          'UPDATE spark_rounds SET measurement_count = $1 WHERE id = $2',
-          [1, prevSparkRoundNumber]
-        )
-        // It should calculate the task count as a very high number and then choose MAX_TASKS_PER_NODE_LIMIT instead
-        const { recordTelemetry } = createTelemetryRecorderStub()
-        const sparkRoundNumber = await mapCurrentMeridianRoundToSparkRound({
-          meridianContractAddress: '0x1a',
-          meridianRoundIndex: 121n,
-          roundStartEpoch: 321n,
-          pgClient,
-          recordTelemetry
-        })
-        const { rows: [sparkRound] } = await pgClient.query(
-          'SELECT * FROM spark_rounds WHERE id = $1',
-          [sparkRoundNumber]
-        )
-        assert.strictEqual(sparkRound.max_tasks_per_node, MAX_TASKS_PER_NODE_LIMIT)
-      })
     })
 
     describe('defineTasksForRound', () => {
@@ -623,7 +405,6 @@ describe('Round Tracker', () => {
           {
             cid: 'bafkqaaa',
             miner_id: 'f0010',
-            // Important: clients are deduplicated
             clients: ['f0050']
           },
           {
@@ -741,6 +522,7 @@ describe('Round Tracker', () => {
           }
         ])
       })
+
       it('should correctly aggregate all clients and allocators for the same (payload_cid, miner_id) pair', async () => {
         // Insert test data with multiple clients for the same (payload_cid, miner_id) pair
         await pgClient.query(`
@@ -781,12 +563,8 @@ describe('Round Tracker', () => {
         assert.strictEqual(tasks.length, 1, 'Should have exactly one task')
         assert.strictEqual(tasks[0].miner_id, 'f0040', 'Should have the expected miner_id')
         assert.strictEqual(tasks[0].cid, 'bafkSameMiner', 'Should have the expected CID')
-
-        // The clients array should contain all three clients
         assert.deepStrictEqual(tasks[0].clients.sort(), ['clientB1', 'clientB2', 'clientB3'].sort(),
           'Should include all clients for the same (payload_cid, miner_id) pair')
-
-        // The allocators array should contain all three allocators
         assert.deepStrictEqual(tasks[0].allocators.sort(), ['allocatorB1', 'allocatorB2', 'allocatorB3'].sort(),
           'Should include all allocators for the clients')
       })
@@ -826,8 +604,7 @@ describe('Round Tracker', () => {
 
         // Verify results
         const { rows: tasks } = await pgClient.query('SELECT miner_id, cid, clients, allocators FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
-        assert.strictEqual(tasks.length, 1, 'Should have exactly one task')
-
+        assert.strictEqual(tasks.length, TASKS_PER_ROUND, 'Should always have TASKS_PER_ROUND tasks')
         // The fixed allocators array should be deduplicated
         assert.deepStrictEqual(tasks[0].allocators.sort(), ['sharedAllocator', 'uniqueAllocator'].sort(),
           'The allocators array should be properly deduplicated')
@@ -870,11 +647,9 @@ describe('Round Tracker', () => {
         [
           {
             _point: 'round',
-            current_round_measurement_count_target: `${TASKS_EXECUTED_PER_ROUND}i`,
-            current_round_task_count: `${Math.floor(
-              BASELINE_TASKS_PER_NODE * ROUND_TASKS_TO_NODE_TASKS_RATIO
-            )}i`,
-            current_round_node_max_task_count: `${BASELINE_TASKS_PER_NODE}i`,
+            current_round_measurement_count_target: `${TASKS_PER_ROUND}i`,
+            current_round_task_count: `${TASKS_PER_ROUND}i`,
+            current_round_node_max_task_count: `${TASKS_PER_ROUND}i`,
             previous_round_measurement_count: '0i',
             previous_round_node_max_task_count: '0i'
           }
