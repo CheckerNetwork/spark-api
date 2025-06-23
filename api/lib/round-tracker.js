@@ -239,7 +239,7 @@ export async function maybeCreateSparkRound (pgClient, {
     sparkRoundNumber
   ])
 
-  // Simplified: Always assign 100 tasks per node, every round.
+  // Always assign TASKS_PER_NODE tasks, every round.
   const { rowCount } = await pgClient.query(`
     INSERT INTO spark_rounds
     (id, created_at, meridian_address, meridian_round, start_epoch, max_tasks_per_node)
