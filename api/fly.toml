@@ -8,7 +8,9 @@ processes = []
 
 [env]
   PORT = "8080"
-  HOST = "0.0.0.0"
+  # Listen on IPv6 by default
+  # https://fly.io/docs/networking/private-networking/#listening-for-connections-on-6pn-addresses
+  HOST = "::"
   SENTRY_ENVIRONMENT = "production"
   DOMAIN = "api.filspark.com"
   REQUEST_LOGGING = "false"
