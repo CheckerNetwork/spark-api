@@ -12,7 +12,6 @@ import { recordNetworkInfoTelemetry } from '../../common/telemetry.js'
 const {
   PORT = 8080,
   HOST = '127.0.0.1',
-  DOMAIN = 'localhost',
   DATABASE_URL,
   DEAL_INGESTER_TOKEN,
   REQUEST_LOGGING = 'true'
@@ -76,8 +75,7 @@ const logger = {
 const handler = await createHandler({
   client,
   logger,
-  dealIngestionAccessToken: DEAL_INGESTER_TOKEN,
-  domain: DOMAIN
+  dealIngestionAccessToken: DEAL_INGESTER_TOKEN
 })
 
 const port = Number(PORT)
