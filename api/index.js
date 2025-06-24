@@ -51,11 +51,7 @@ const handler = async (req, res, client, dealIngestionAccessToken, checkerToken)
 }
 
 const createMeasurement = async (req, res, client, checkerToken) => {
-  if (req.headers.authorization !== `Bearer ${checkerToken}`) {
-    res.statusCode = 403
-    res.end('Unauthorized')
-    return
-  }
+  assert.strictEqual(req.headers.authorization, `Bearer ${checkerToken}`, 403)
 
   const body = await getRawBody(req, { limit: '100kb' })
   const measurement = JSON.parse(body.toString())
