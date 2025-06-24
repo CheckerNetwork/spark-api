@@ -18,6 +18,7 @@ const sparkVersion = '1.17.0' // This must be in sync with the minimum supported
 const currentSparkRoundNumber = 42n
 
 const VALID_DEAL_INGESTION_TOKEN = 'authorized-token'
+const VALID_CHECKER_TOKEN = 'authorized-checker-token'
 
 const VALID_MEASUREMENT = {
   cid: 'bafytest',
@@ -73,7 +74,8 @@ describe('Routes', () => {
         error: console.error,
         request () { }
       },
-      dealIngestionAccessToken: VALID_DEAL_INGESTION_TOKEN
+      dealIngestionAccessToken: VALID_DEAL_INGESTION_TOKEN,
+      checkerToken: VALID_CHECKER_TOKEN
     })
     server = http.createServer(handler)
     server.listen()
@@ -149,7 +151,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -206,7 +208,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -233,7 +235,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -260,7 +262,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 400)
@@ -279,7 +281,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -323,7 +325,7 @@ describe('Routes', () => {
 
       const res = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(res, 410)
@@ -346,7 +348,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -376,7 +378,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -411,13 +413,45 @@ describe('Routes', () => {
       for (const measurement of measurements) {
         const res = await fetch(`${spark}/measurements`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
           body: JSON.stringify(measurement)
         })
         await assertResponseStatus(res, 400)
         const body = await res.text()
         assert.strictEqual(body, 'Invalid Station ID')
       }
+
+      const { rows } = await client.query('SELECT id FROM measurements')
+      assert.deepStrictEqual(rows, [])
+    })
+
+    it('rejects unauthorized measurement', async () => {
+      await client.query('DELETE FROM measurements')
+
+      const res = await fetch(`${spark}/measurements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(VALID_MEASUREMENT)
+      })
+      await assertResponseStatus(res, 403)
+      const body = await res.text()
+      assert.strictEqual(body, 'Unauthorized')
+
+      const { rows } = await client.query('SELECT id FROM measurements')
+      assert.deepStrictEqual(rows, [])
+    })
+
+    it('rejects measurement with wrong token', async () => {
+      await client.query('DELETE FROM measurements')
+
+      const res = await fetch(`${spark}/measurements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', authorization: 'Bearer invalid' },
+        body: JSON.stringify(VALID_MEASUREMENT)
+      })
+      await assertResponseStatus(res, 403)
+      const body = await res.text()
+      assert.strictEqual(body, 'Unauthorized')
 
       const { rows } = await client.query('SELECT id FROM measurements')
       assert.deepStrictEqual(rows, [])
