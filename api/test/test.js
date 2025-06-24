@@ -441,7 +441,7 @@ describe('Routes', () => {
       assert.deepStrictEqual(rows, [])
     })
 
-    it('rejects measurement with wrong token', async () => {
+    it('rejects measurement with wrong authorizaiton token', async () => {
       await client.query('DELETE FROM measurements')
 
       const res = await fetch(`${spark}/measurements`, {
@@ -673,7 +673,11 @@ describe('Routes', () => {
       `)
       const res = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        body: JSON.stringify(VALID_MEASUREMENT)
+        body: JSON.stringify(VALID_MEASUREMENT),
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${VALID_CHECKER_TOKEN}`
+        }
       })
       await assertResponseStatus(res, 200)
       const body = await res.json()
