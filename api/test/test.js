@@ -69,11 +69,12 @@ describe('Routes', () => {
     const handler = await createHandler({
       client,
       logger: {
-        info () { },
+        info () {},
         error: console.error,
-        request () { }
+        request () {}
       },
-      dealIngestionAccessToken: VALID_DEAL_INGESTION_TOKEN
+      dealIngestionAccessToken: VALID_DEAL_INGESTION_TOKEN,
+      domain: '127.0.0.1'
     })
     server = http.createServer(handler)
     server.listen()
@@ -645,6 +646,38 @@ describe('Routes', () => {
       const body = await res.json()
 
       assert.deepStrictEqual(body, { id: String(2 ** 31) })
+    })
+  })
+
+  describe('Redirect', () => {
+    it('redirects to the right domain', async () => {
+      let server
+      try {
+        const handler = await createHandler({
+          client,
+          logger: {
+            info () {},
+            error: console.error,
+            request () {}
+          },
+          dealIngestionAccessToken: VALID_DEAL_INGESTION_TOKEN,
+          domain: 'foobar'
+        })
+        server = http.createServer(handler)
+        server.listen()
+        await once(server, 'listening')
+        const { port } = /** @type {import('node:net').AddressInfo} */ (server.address())
+        const spark = `http://127.0.0.1:${port}`
+        const res = await fetch(
+          `${spark}/rounds/${currentSparkRoundNumber}`,
+          { redirect: 'manual' }
+        )
+        await assertResponseStatus(res, 301)
+        assert.strictEqual(res.headers.get('location'), `https://foobar/rounds/${currentSparkRoundNumber}`)
+      } finally {
+        server.closeAllConnections()
+        server.close()
+      }
     })
   })
 
