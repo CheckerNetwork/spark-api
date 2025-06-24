@@ -24,7 +24,7 @@ const {
 // The same token is configured in Fly.io secrets for the deal-observer service too.
 assert(DEAL_INGESTER_TOKEN, 'DEAL_INGESTER_TOKEN is required')
 
-// TODO:
+// This token is used by permissioned Spark nodes to authenticate measurement creation requests
 assert(CHECKER_TOKEN, 'CHECKER_TOKEN is required')
 
 const client = new pg.Pool({
