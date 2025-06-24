@@ -36,7 +36,6 @@ async function parseProof (data) {
   for await (const block of reader.blocks()) {
     blocks.push(block)
   }
-  // @ts-ignore
   return importDAG(blocks)
 }
 
