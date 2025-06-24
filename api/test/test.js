@@ -463,7 +463,7 @@ describe('Routes', () => {
       const measurement = { ...VALID_MEASUREMENT }
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
