@@ -16,10 +16,14 @@ import { ethAddressFromDelegated } from '@glif/filecoin-address'
  * @param {IncomingMessage} req
  * @param {ServerResponse} res
  * @param {pg.Client} client
+ * @param {string} domain
  * @param {string} dealIngestionAccessToken
  * @param {string} checkerToken
  */
-const handler = async (req, res, client, dealIngestionAccessToken, checkerToken) => {
+const handler = async (req, res, client, domain, dealIngestionAccessToken, checkerToken) => {
+  if (req.headers.host.split(':')[0] !== domain) {
+    return redirect(req, res, `https://${domain}${req.url}`, 301)
+  }
   const segs = req.url.split('/').filter(Boolean)
   if (segs[0] === 'retrievals' && req.method === 'POST') {
     assert.fail(410, 'OUTDATED CLIENT')
@@ -463,13 +467,14 @@ export const ingestEligibleDeals = async (req, res, client, dealIngestionAccessT
 export const createHandler = async ({
   client,
   logger,
+  domain,
   dealIngestionAccessToken,
   checkerToken
 }) => {
   return (req, res) => {
     const start = new Date()
     logger.request(`${req.method} ${req.url} ...`)
-    handler(req, res, client, dealIngestionAccessToken, checkerToken)
+    handler(req, res, client, domain, dealIngestionAccessToken, checkerToken)
       .catch(err => errorHandler(res, err, logger))
       .then(() => {
         logger.request(`${req.method} ${req.url} ${res.statusCode} (${new Date().getTime() - start.getTime()}ms)`)
