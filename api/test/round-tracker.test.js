@@ -405,6 +405,7 @@ describe('Round Tracker', () => {
           {
             cid: 'bafkqaaa',
             miner_id: 'f0010',
+            // Important: clients are deduplicated
             clients: ['f0050']
           },
           {
@@ -563,8 +564,10 @@ describe('Round Tracker', () => {
         assert.strictEqual(tasks.length, 1, 'Should have exactly one task')
         assert.strictEqual(tasks[0].miner_id, 'f0040', 'Should have the expected miner_id')
         assert.strictEqual(tasks[0].cid, 'bafkSameMiner', 'Should have the expected CID')
+        // The clients array should contain all three clients
         assert.deepStrictEqual(tasks[0].clients.sort(), ['clientB1', 'clientB2', 'clientB3'].sort(),
           'Should include all clients for the same (payload_cid, miner_id) pair')
+        // The allocators array should contain all three allocators
         assert.deepStrictEqual(tasks[0].allocators.sort(), ['allocatorB1', 'allocatorB2', 'allocatorB3'].sort(),
           'Should include all allocators for the clients')
       })
@@ -604,6 +607,7 @@ describe('Round Tracker', () => {
 
         // Verify results
         const { rows: tasks } = await pgClient.query('SELECT miner_id, cid, clients, allocators FROM retrieval_tasks WHERE round_id = $1', [roundNumber])
+        assert.strictEqual(tasks.length, 1, 'Should have exactly one task')
         // The fixed allocators array should be deduplicated
         assert.deepStrictEqual(tasks[0].allocators.sort(), ['sharedAllocator', 'uniqueAllocator'].sort(),
           'The allocators array should be properly deduplicated')
