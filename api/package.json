@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "light-my-request": "^6.6.0",
-    "mocha": "^11.7.0",
+    "mocha": "^11.7.1",
     "standard": "^17.1.2",
     "varint": "^6.0.0"
   },
@@ -21,7 +21,7 @@
     "@filecoin-station/spark-impact-evaluator": "^1.2.4",
     "@glif/filecoin-address": "^4.0.0",
     "@influxdata/influxdb-client": "^1.35.0",
-    "@sentry/node": "^9.30.0",
+    "@sentry/node": "^9.31.0",
     "compare-versions": "^6.1.1",
     "ethers": "^6.14.4",
     "http-assert": "^1.5.0",
