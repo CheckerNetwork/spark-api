@@ -436,7 +436,7 @@ describe('Routes', () => {
       })
       await assertResponseStatus(res, 403)
       const body = await res.text()
-      assert.strictEqual(body, 'Unauthorized')
+      assert.strictEqual(body, 'Forbidden')
 
       const { rows } = await client.query('SELECT id FROM measurements')
       assert.deepStrictEqual(rows, [])
