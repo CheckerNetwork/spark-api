@@ -18,8 +18,9 @@ import { ethAddressFromDelegated } from '@glif/filecoin-address'
  * @param {pg.Client} client
  * @param {string} domain
  * @param {string} dealIngestionAccessToken
+ * @param {string} checkerToken
  */
-const handler = async (req, res, client, domain, dealIngestionAccessToken) => {
+const handler = async (req, res, client, domain, dealIngestionAccessToken, checkerToken) => {
   if (req.headers.host.split(':')[0] !== domain) {
     return redirect(req, res, `https://${domain}${req.url}`, 301)
   }
@@ -31,7 +32,7 @@ const handler = async (req, res, client, domain, dealIngestionAccessToken) => {
   } else if (segs[0] === 'retrievals' && req.method === 'GET') {
     assert.fail(410, 'This API endpoint is no longer supported.')
   } else if (segs[0] === 'measurements' && req.method === 'POST') {
-    await createMeasurement(req, res, client)
+    await createMeasurement(req, res, client, checkerToken)
   } else if (segs[0] === 'measurements' && req.method === 'GET') {
     await getMeasurement(req, res, client, Number(segs[1]))
   } else if (segs[0] === 'rounds' && segs[1] === 'meridian' && req.method === 'GET') {
@@ -53,7 +54,9 @@ const handler = async (req, res, client, domain, dealIngestionAccessToken) => {
   }
 }
 
-const createMeasurement = async (req, res, client) => {
+const createMeasurement = async (req, res, client, checkerToken) => {
+  assert.strictEqual(req.headers.authorization, `Bearer ${checkerToken}`, 403)
+
   const body = await getRawBody(req, { limit: '100kb' })
   const measurement = JSON.parse(body.toString())
   validate(measurement, 'sparkVersion', { type: 'string', required: false })
@@ -460,13 +463,14 @@ export const ingestEligibleDeals = async (req, res, client, dealIngestionAccessT
 export const createHandler = async ({
   client,
   logger,
+  domain,
   dealIngestionAccessToken,
-  domain
+  checkerToken
 }) => {
   return (req, res) => {
     const start = new Date()
     logger.request(`${req.method} ${req.url} ...`)
-    handler(req, res, client, domain, dealIngestionAccessToken)
+    handler(req, res, client, domain, dealIngestionAccessToken, checkerToken)
       .catch(err => errorHandler(res, err, logger))
       .then(() => {
         logger.request(`${req.method} ${req.url} ${res.statusCode} (${new Date().getTime() - start.getTime()}ms)`)
