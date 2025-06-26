@@ -15,6 +15,7 @@ const {
   DOMAIN = 'localhost',
   DATABASE_URL,
   DEAL_INGESTER_TOKEN,
+  CHECKER_TOKEN,
   REQUEST_LOGGING = 'true'
 } = process.env
 
@@ -23,6 +24,9 @@ const {
 // In production, the value is configured using Fly.io secrets (`fly secrets`).
 // The same token is configured in Fly.io secrets for the deal-observer service too.
 assert(DEAL_INGESTER_TOKEN, 'DEAL_INGESTER_TOKEN is required')
+
+// This token is used by permissioned Spark nodes to authenticate measurement creation requests
+assert(CHECKER_TOKEN, 'CHECKER_TOKEN is required')
 
 const client = new pg.Pool({
   connectionString: DATABASE_URL,
@@ -77,6 +81,7 @@ const handler = await createHandler({
   client,
   logger,
   dealIngestionAccessToken: DEAL_INGESTER_TOKEN,
+  checkerToken: CHECKER_TOKEN,
   domain: DOMAIN
 })
 
