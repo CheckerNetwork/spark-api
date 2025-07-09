@@ -12,6 +12,7 @@ jobs:
       matrix:
         dependencyStartsWith:
           - '@sentry/'
+          - '@types/'
           - mocha
           - light-my-request
           - '@glif/filecoin-address'
