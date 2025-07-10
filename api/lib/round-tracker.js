@@ -2,18 +2,7 @@ import assert from 'node:assert'
 import * as Sentry from '@sentry/node'
 import { createMeridianContract } from './ie-contract.js'
 
-// Tweak this to control the network's overall task count.
-export const TASKS_EXECUTED_PER_ROUND = 250_000
-
-// Baseline values for how many tasks should be completed every round, and how
-// many tasks each SPARK checker node is expected to complete (every round, at
-// most). The actual value will be set dynamically based on
-// TASKS_EXECUTED_PER_ROUND and the number of tasks executed in the last round.
-export const BASELINE_TASKS_PER_ROUND = 1000
-export const BASELINE_TASKS_PER_NODE = 15
-export const MAX_TASKS_PER_NODE_LIMIT = 50
-
-export const ROUND_TASKS_TO_NODE_TASKS_RATIO = BASELINE_TASKS_PER_ROUND / BASELINE_TASKS_PER_NODE
+export const TASKS_PER_ROUND = 100
 
 /** @typedef {Awaited<ReturnType<import('./ie-contract.js').createMeridianContract>>} MeridianContract */
 
@@ -242,16 +231,6 @@ export async function maybeCreateSparkRound (pgClient, {
   roundStartEpoch,
   recordTelemetry
 }) {
-  //   maxTasksPerNode(round(n)) =
-  //     BASELINE_TASKS_PER_NODE
-  //       if n=0
-  //     BASELINE_TASKS_PER_NODE
-  //       if measurementCount(round(n-1)) = 0
-  //     min(
-  //       maxTasksPerNode(round(n-1)) * (TASKS_EXECUTED_PER_ROUND / measurementCount(round(n-1))),
-  //       MAX_TASKS_PER_NODE_LIMIT
-  //     )
-  //       otherwise
   const { rows: [previousRound] } = await pgClient.query(`
     SELECT measurement_count, max_tasks_per_node
     FROM spark_rounds
@@ -259,7 +238,9 @@ export async function maybeCreateSparkRound (pgClient, {
   `, [
     sparkRoundNumber
   ])
-  const { rows, rowCount } = await pgClient.query(`
+
+  // Always assign TASKS_PER_ROUND tasks to the single 0k-checker node
+  const { rowCount } = await pgClient.query(`
     INSERT INTO spark_rounds
     (id, created_at, meridian_address, meridian_round, start_epoch, max_tasks_per_node)
     VALUES (
@@ -268,14 +249,7 @@ export async function maybeCreateSparkRound (pgClient, {
       $2,
       $3,
       $4,
-      GREATEST(1,
-        LEAST(
-          $5, /* MAX_TASKS_PER_NODE_LIMIT */
-          $6::bigint /* previousRound.max_tasks_per_node || BASELINE_TASKS_PER_NODE */
-          * $7::bigint /* TASKS_EXECUTED_PER_ROUND */
-          / $8::bigint /* previousRound.measurement_count || TASKS_EXECUTED_PER_ROUND */
-        )
-      )
+      $5
     )
     ON CONFLICT DO NOTHING
     RETURNING max_tasks_per_node
@@ -284,23 +258,17 @@ export async function maybeCreateSparkRound (pgClient, {
     meridianContractAddress,
     meridianRoundIndex,
     roundStartEpoch,
-    MAX_TASKS_PER_NODE_LIMIT,
-    previousRound?.max_tasks_per_node || BASELINE_TASKS_PER_NODE,
-    TASKS_EXECUTED_PER_ROUND,
-    previousRound?.measurement_count || TASKS_EXECUTED_PER_ROUND
+    TASKS_PER_ROUND
   ])
 
   if (rowCount) {
     // We created a new SPARK round. Let's define retrieval tasks for this new round.
     // This is a short- to medium-term solution until we move to fully decentralized tasking
-    const taskCount = Math.floor(
-      rows[0].max_tasks_per_node * ROUND_TASKS_TO_NODE_TASKS_RATIO
-    )
-    await defineTasksForRound(pgClient, sparkRoundNumber, taskCount)
+    await defineTasksForRound(pgClient, sparkRoundNumber, TASKS_PER_ROUND)
     recordTelemetry('round', point => {
-      point.intField('current_round_measurement_count_target', TASKS_EXECUTED_PER_ROUND)
-      point.intField('current_round_task_count', taskCount)
-      point.intField('current_round_node_max_task_count', rows[0].max_tasks_per_node)
+      point.intField('current_round_measurement_count_target', TASKS_PER_ROUND)
+      point.intField('current_round_task_count', TASKS_PER_ROUND)
+      point.intField('current_round_node_max_task_count', TASKS_PER_ROUND)
       point.intField('previous_round_measurement_count', previousRound?.measurement_count ?? 0)
       point.intField('previous_round_node_max_task_count', previousRound?.max_tasks_per_node ?? 0)
     })

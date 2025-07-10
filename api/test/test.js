@@ -4,10 +4,9 @@ import { once } from 'node:events'
 import assert, { AssertionError } from 'node:assert'
 import pg from 'pg'
 import {
-  BASELINE_TASKS_PER_ROUND,
   maybeCreateSparkRound,
   mapCurrentMeridianRoundToSparkRound,
-  BASELINE_TASKS_PER_NODE
+  TASKS_PER_ROUND
 } from '../lib/round-tracker.js'
 import { delegatedFromEthAddress, CoinType } from '@glif/filecoin-address'
 import { createTelemetryRecorderStub } from '../../test-helpers/platform-test-helpers.js'
@@ -18,6 +17,7 @@ const sparkVersion = '1.17.0' // This must be in sync with the minimum supported
 const currentSparkRoundNumber = 42n
 
 const VALID_DEAL_INGESTION_TOKEN = 'authorized-token'
+const VALID_CHECKER_TOKEN = 'authorized-checker-token'
 
 const VALID_MEASUREMENT = {
   cid: 'bafytest',
@@ -74,6 +74,7 @@ describe('Routes', () => {
         request () {}
       },
       dealIngestionAccessToken: VALID_DEAL_INGESTION_TOKEN,
+      checkerToken: VALID_CHECKER_TOKEN,
       domain: '127.0.0.1'
     })
     server = http.createServer(handler)
@@ -150,7 +151,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -207,7 +208,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -234,7 +235,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -261,7 +262,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 400)
@@ -280,7 +281,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -324,7 +325,7 @@ describe('Routes', () => {
 
       const res = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(res, 410)
@@ -347,7 +348,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -377,7 +378,7 @@ describe('Routes', () => {
 
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -412,13 +413,45 @@ describe('Routes', () => {
       for (const measurement of measurements) {
         const res = await fetch(`${spark}/measurements`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
           body: JSON.stringify(measurement)
         })
         await assertResponseStatus(res, 400)
         const body = await res.text()
         assert.strictEqual(body, 'Invalid Station ID')
       }
+
+      const { rows } = await client.query('SELECT id FROM measurements')
+      assert.deepStrictEqual(rows, [])
+    })
+
+    it('rejects unauthorized measurement', async () => {
+      await client.query('DELETE FROM measurements')
+
+      const res = await fetch(`${spark}/measurements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(VALID_MEASUREMENT)
+      })
+      await assertResponseStatus(res, 403)
+      const body = await res.text()
+      assert.strictEqual(body, 'Forbidden')
+
+      const { rows } = await client.query('SELECT id FROM measurements')
+      assert.deepStrictEqual(rows, [])
+    })
+
+    it('rejects measurement with wrong authorizaiton token', async () => {
+      await client.query('DELETE FROM measurements')
+
+      const res = await fetch(`${spark}/measurements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', authorization: 'Bearer invalid' },
+        body: JSON.stringify(VALID_MEASUREMENT)
+      })
+      await assertResponseStatus(res, 403)
+      const body = await res.text()
+      assert.strictEqual(body, 'Forbidden')
 
       const { rows } = await client.query('SELECT id FROM measurements')
       assert.deepStrictEqual(rows, [])
@@ -430,7 +463,7 @@ describe('Routes', () => {
       const measurement = { ...VALID_MEASUREMENT }
       const createRequest = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${VALID_CHECKER_TOKEN}` },
         body: JSON.stringify(measurement)
       })
       await assertResponseStatus(createRequest, 200)
@@ -507,10 +540,10 @@ describe('Routes', () => {
 
       assert.deepStrictEqual(details, {
         roundId: '2',
-        maxTasksPerNode: BASELINE_TASKS_PER_NODE,
+        maxTasksPerNode: TASKS_PER_ROUND,
         startEpoch: '621'
       })
-      assert.strictEqual(retrievalTasks.length, BASELINE_TASKS_PER_ROUND)
+      assert.strictEqual(retrievalTasks.length, TASKS_PER_ROUND)
 
       for (const task of retrievalTasks) {
         assert.equal(typeof task.cid, 'string', 'all tasks have "cid"')
@@ -532,10 +565,10 @@ describe('Routes', () => {
 
       assert.deepStrictEqual(details, {
         roundId: '1',
-        maxTasksPerNode: BASELINE_TASKS_PER_NODE,
+        maxTasksPerNode: TASKS_PER_ROUND,
         startEpoch: '321'
       })
-      assert.strictEqual(retrievalTasks.length, BASELINE_TASKS_PER_ROUND)
+      assert.strictEqual(retrievalTasks.length, TASKS_PER_ROUND)
     })
 
     it('returns 404 for unknown round index', async () => {
@@ -640,7 +673,11 @@ describe('Routes', () => {
       `)
       const res = await fetch(`${spark}/measurements`, {
         method: 'POST',
-        body: JSON.stringify(VALID_MEASUREMENT)
+        body: JSON.stringify(VALID_MEASUREMENT),
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${VALID_CHECKER_TOKEN}`
+        }
       })
       await assertResponseStatus(res, 200)
       const body = await res.json()
@@ -661,6 +698,7 @@ describe('Routes', () => {
             request () {}
           },
           dealIngestionAccessToken: VALID_DEAL_INGESTION_TOKEN,
+          checkerToken: VALID_CHECKER_TOKEN,
           domain: 'foobar'
         })
         server = http.createServer(handler)

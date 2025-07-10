@@ -10,15 +10,15 @@
     "@glif/filecoin-address": "^4.0.0",
     "@influxdata/influxdb-client": "^1.35.0",
     "@ipld/car": "^5.4.2",
-    "@sentry/node": "^9.31.0",
+    "@sentry/node": "^9.35.0",
     "@ucanto/core": "^10.4.0",
     "@ucanto/principal": "^9.0.2",
     "@web3-storage/access": "^20.3.0",
     "@web3-storage/w3up-client": "^16.5.2",
     "cancel-stuck-transactions": "^4.1.4",
-    "ethers": "^6.14.4",
+    "ethers": "^6.15.0",
     "p-retry": "^6.2.1",
-    "pg": "^8.16.2"
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@flydotio/dockerfile": "^0.7.10",
