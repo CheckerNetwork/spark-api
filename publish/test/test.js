@@ -36,7 +36,7 @@ describe('unit', () => {
         }
 
         clientQueryParams.push(params)
-        return { rows: [] }
+        return { rows: [{}] }
       }
     }
 
@@ -98,8 +98,8 @@ describe('unit', () => {
     assert.deepStrictEqual(clientQueryParams, [
       [1],
       undefined,
-      [[]],
-      [0, SparkImpactEvaluator.ADDRESS, 1],
+      [[undefined]],
+      [1, SparkImpactEvaluator.ADDRESS, 1],
       undefined
     ])
     assert.strictEqual(clientStatements.pop(), 'VACUUM measurements')
@@ -107,6 +107,38 @@ describe('unit', () => {
     assert.deepStrictEqual(ieContractMeasurementCIDs, [cid])
     assert.strictEqual(addPendingCalls.length, 1)
     assert.strictEqual(removeConfirmedCalls.length, 1)
+  })
+
+  it('noops when measurements empty', async () => {
+    const clientStatements = []
+    const client = {
+      connect () {
+        return client
+      },
+      release () {},
+      async query (statement) {
+        clientStatements.push(statement)
+        return { rows: [] }
+      }
+    }
+
+    const web3Storage = {}
+    const ieContract = {}
+    const stuckTransactionsCanceller = {}
+
+    const { recordTelemetry } = createTelemetryRecorderStub()
+
+    await publish({
+      client,
+      web3Storage,
+      ieContract,
+      recordTelemetry,
+      maxMeasurements: 1,
+      logger,
+      stuckTransactionsCanceller
+    })
+
+    assert.strictEqual(clientStatements.length, 1)
   })
 })
 
