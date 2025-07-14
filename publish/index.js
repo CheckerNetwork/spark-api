@@ -43,6 +43,10 @@ export const publish = async ({
   `, [
     maxMeasurements
   ])
+  if (measurements.length === 0) {
+    logger.log('No measurements to publish.')
+    return
+  }
 
   // Fetch the count of all unpublished measurements - we need this for monitoring
   // Note: this number will be higher than `measurements.length` because spark-api adds more
