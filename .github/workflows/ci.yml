@@ -70,6 +70,7 @@ jobs:
           node-version: 22.13.1
       - run: npm ci
       - run: npm run lint
+      - run: npm run test:types
 
   docker-build:
     runs-on: ubuntu-latest
