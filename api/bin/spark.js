@@ -1,4 +1,3 @@
-import '../lib/instrument.js'
 import assert from 'node:assert'
 import http from 'node:http'
 import { once } from 'node:events'
