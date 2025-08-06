@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/node'
 import { StuckTransactionsCanceller } from 'cancel-stuck-transactions'
 import ms from 'ms'
 import timers from 'node:timers/promises'
@@ -66,15 +65,11 @@ export const startCancelStuckTransactions = async stuckTransactionsCanceller => 
         for (const { status, reason } of res) {
           if (status === 'rejected') {
             console.error('Failed to cancel transaction:', reason)
-            Sentry.captureException(reason)
           }
         }
       }
     } catch (err) {
       console.error(err)
-      if (err.code !== 'FILFOX_REQUEST_FAILED') {
-        Sentry.captureException(err)
-      }
     }
     await timers.setTimeout(CHECK_STUCK_TXS_DELAY)
   }

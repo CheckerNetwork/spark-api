@@ -1,5 +1,4 @@
 import { json, redirect, status } from 'http-responders'
-import * as Sentry from '@sentry/node'
 import getRawBody from 'raw-body'
 import assert from 'http-assert'
 import { validate } from './lib/validate.js'
@@ -307,10 +306,6 @@ const errorHandler = (res, err, logger) => {
   } else {
     logger.error(err)
     status(res, 500)
-  }
-
-  if (res.statusCode >= 500) {
-    Sentry.captureException(err)
   }
 }
 
