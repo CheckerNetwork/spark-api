@@ -14,7 +14,7 @@ import {
 
 describe('unit', () => {
   it('publishes', async () => {
-    const cid = 'bafybeicmyzlxgqeg5lgjgnzducj37s7bxhxk6vywqtuym2vhqzxjtymqvm'
+    const cid = 'bafkqaaa'
 
     const clientStatements = []
     const clientQueryParams = []
@@ -109,7 +109,7 @@ describe('unit', () => {
     assert.strictEqual(removeConfirmedCalls.length, 1)
   })
 
-  it('noops when measurements empty', async () => {
+  it('publishes an empty batch with CID bafkqaaa when measurements empty', async () => {
     const clientStatements = []
     const client = {
       connect () {
@@ -122,9 +122,40 @@ describe('unit', () => {
       }
     }
 
-    const web3Storage = {}
-    const ieContract = {}
-    const stuckTransactionsCanceller = {}
+    const web3Storage = {
+      async uploadFile (file) {
+        throw new Error('web3Storage.uploadFile should not be called')
+      }
+    }
+
+    const ieContractMeasurementCIDs = []
+    const ieContract = {
+      async addMeasurements (cid) {
+        ieContractMeasurementCIDs.push(cid)
+        return {
+          async wait () {
+            return {
+              logs: [{}]
+            }
+          }
+        }
+      },
+      interface: {
+        parseLog () {
+          return {
+            args: [
+              null,
+              1
+            ]
+          }
+        }
+      }
+    }
+
+    const stuckTransactionsCanceller = {
+      async addPending (tx) { },
+      async removeConfirmed (tx) { }
+    }
 
     const { recordTelemetry } = createTelemetryRecorderStub()
 
@@ -138,7 +169,7 @@ describe('unit', () => {
       stuckTransactionsCanceller
     })
 
-    assert.strictEqual(clientStatements.length, 1)
+    assert.deepStrictEqual(ieContractMeasurementCIDs, ['bafkqaaa'])
   })
 })
 
