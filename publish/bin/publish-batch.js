@@ -29,7 +29,14 @@ assert(W3UP_PROOF, 'W3UP_PROOF required')
 const maxMeasurements = Number(MAX_MEASUREMENTS_PER_ROUND)
 const client = new pg.Pool({ connectionString: DATABASE_URL })
 
+/**
+ * @param {string} data
+ */
 async function parseProof (data) {
+  // Casting to unsafe `any[]` to avoid the following TypeScript error:
+  //    Argument of type 'Block[]' is not assignable to parameter
+  //    of type 'Iterable<Block<unknown, number, number, 1>>'
+  /** @type {any[]} */
   const blocks = []
   const reader = await CarReader.fromBytes(Buffer.from(data, 'base64'))
   for await (const block of reader.blocks()) {
