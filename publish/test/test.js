@@ -14,7 +14,7 @@ import {
 
 describe('unit', () => {
   it('publishes', async () => {
-    const cid = 'bafkqaaa'
+    const cid = 'bafybeicmyzlxgqeg5lgjgnzducj37s7bxhxk6vywqtuym2vhqzxjtymqvm'
 
     const clientStatements = []
     const clientQueryParams = []
