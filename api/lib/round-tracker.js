@@ -2,7 +2,7 @@ import assert from 'node:assert'
 
 import { createMeridianContract } from './ie-contract.js'
 
-export const TASKS_PER_ROUND = 100
+export const TASKS_PER_ROUND = 500
 
 /** @typedef {Awaited<ReturnType<import('./ie-contract.js').createMeridianContract>>} MeridianContract */
 

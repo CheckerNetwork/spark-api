@@ -110,7 +110,7 @@ describe('Round Tracker', () => {
           current_round_task_count: `${TASKS_PER_ROUND}i`,
           current_round_node_max_task_count: `${TASKS_PER_ROUND}i`,
           previous_round_measurement_count: '0i',
-          previous_round_node_max_task_count: '100i'
+          previous_round_node_max_task_count: `${TASKS_PER_ROUND}i`
         }
       )
     })
@@ -182,7 +182,7 @@ describe('Round Tracker', () => {
           current_round_task_count: `${TASKS_PER_ROUND}i`,
           current_round_node_max_task_count: `${TASKS_PER_ROUND}i`,
           previous_round_measurement_count: '0i',
-          previous_round_node_max_task_count: '100i'
+          previous_round_node_max_task_count: `${TASKS_PER_ROUND}i`
         }
       )
     })
@@ -329,7 +329,7 @@ describe('Round Tracker', () => {
       assert.strictEqual(sparkRoundNumber, 1n)
       const sparkRounds = (await pgClient.query('SELECT * FROM spark_rounds ORDER BY id')).rows
       assert.deepStrictEqual(sparkRounds.map(r => r.id), ['1'])
-      assert.strictEqual(sparkRounds[0].max_tasks_per_node, 100)
+      assert.strictEqual(sparkRounds[0].max_tasks_per_node, 500)
       assert.deepStrictEqual(
         telemetry.map(p => ({ _point: getPointName(p), ...p.fields })),
         [
