@@ -1,6 +1,5 @@
 /** @import { EthAddress } from '@glif/filecoin-address' */
-import '../lib/instrument.js'
-import * as Sentry from '@sentry/node'
+
 import assert from 'node:assert'
 import { newDelegatedEthAddress, CoinType } from '@glif/filecoin-address'
 import timers from 'node:timers/promises'
@@ -69,7 +68,6 @@ await Promise.all([
       const [code] = await once(ps, 'exit')
       if (code !== 0) {
         console.error(`Bad exit code: ${code}`)
-        Sentry.captureMessage(`Bad exit code: ${code}`)
       }
       const dt = new Date().getTime() - lastStart.getTime()
       console.log(`Done. This iteration took ${dt}ms.`)

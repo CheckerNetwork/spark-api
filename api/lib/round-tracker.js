@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import * as Sentry from '@sentry/node'
+
 import { createMeridianContract } from './ie-contract.js'
 
 export const TASKS_PER_ROUND = 100
@@ -34,7 +34,6 @@ export async function startRoundTracker ({ pgPool, signal, recordTelemetry }) {
 
     updateSparkRound(pgPool, contract, newRoundIndex, recordTelemetry, blockNumber).catch(err => {
       console.error('Cannot handle RoundStart:', err)
-      Sentry.captureException(err)
     })
   }
   contract.on('RoundStart', onRoundStart)
