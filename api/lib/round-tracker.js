@@ -238,7 +238,7 @@ export async function maybeCreateSparkRound (pgClient, {
     sparkRoundNumber
   ])
 
-  // Always assign TASKS_PER_ROUND tasks to the single 0k-checker node
+  // Always assign TASKS_PER_ROUND tasks to every 0k-checker node
   const { rowCount } = await pgClient.query(`
     INSERT INTO spark_rounds
     (id, created_at, meridian_address, meridian_round, start_epoch, max_tasks_per_node)
