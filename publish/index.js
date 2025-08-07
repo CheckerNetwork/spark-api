@@ -44,8 +44,9 @@ export const publish = async ({
     maxMeasurements
   ])
   if (measurements.length === 0) {
-    logger.log('No measurements to publish.')
-    return
+    // IMPORTANT: We still need to publish an empty batch,
+    // otherwise the current round will never advance.
+    logger.log('WARNING: No measurements to publish. Publishing an empty batch.')
   }
 
   // Fetch the count of all unpublished measurements - we need this for monitoring
@@ -53,18 +54,25 @@ export const publish = async ({
   // measurements in between the previous and the next query.
   const totalCount = (await pgPool.query(
     'SELECT COUNT(*) FROM measurements'
-  )).rows[0].count
+  )).rows[0]?.count || 0
 
   logger.log(`Publishing ${measurements.length} measurements. Total unpublished: ${totalCount}. Batch size: ${maxMeasurements}.`)
 
   // Share measurements
   const start = new Date()
-  const file = new File(
-    [measurements.map(m => JSON.stringify(m)).join('\n')],
-    'measurements.ndjson',
-    { type: 'application/json' }
-  )
-  const cid = await web3Storage.uploadFile(file)
+
+  let cid
+  if (measurements.length) {
+    const file = new File(
+      [measurements.map(m => JSON.stringify(m)).join('\n')],
+      'measurements.ndjson',
+      { type: 'application/json' }
+    )
+    cid = await web3Storage.uploadFile(file)
+  } else {
+    // bafkqaaa is a CID for an empty file
+    cid = 'bafkqaaa'
+  }
   const uploadMeasurementsDuration = new Date().getTime() - start.getTime()
   logger.log(`Measurements packaged in ${cid}`)
 
