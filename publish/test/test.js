@@ -109,7 +109,7 @@ describe('unit', () => {
     assert.strictEqual(removeConfirmedCalls.length, 1)
   })
 
-  it('publishes an empty batch with CID bafkqaaa when measurements empty', async () => {
+  it('calls the tick method when measurements empty', async () => {
     const clientStatements = []
     const client = {
       connect () {
@@ -122,33 +122,12 @@ describe('unit', () => {
       }
     }
 
-    const web3Storage = {
-      async uploadFile (file) {
-        throw new Error('web3Storage.uploadFile should not be called')
-      }
-    }
+    const web3Storage = {}
 
-    const ieContractMeasurementCIDs = []
+    let tickCalls = 0
     const ieContract = {
-      async addMeasurements (cid) {
-        ieContractMeasurementCIDs.push(cid)
-        return {
-          async wait () {
-            return {
-              logs: [{}]
-            }
-          }
-        }
-      },
-      interface: {
-        parseLog () {
-          return {
-            args: [
-              null,
-              1
-            ]
-          }
-        }
+      async tick () {
+        tickCalls++
       }
     }
 
@@ -169,7 +148,7 @@ describe('unit', () => {
       stuckTransactionsCanceller
     })
 
-    assert.deepStrictEqual(ieContractMeasurementCIDs, ['bafkqaaa'])
+    assert.strictEqual(tickCalls, 1)
   })
 })
 
