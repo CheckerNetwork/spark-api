@@ -45,7 +45,13 @@ export const publish = async ({
   ])
   if (measurements.length === 0) {
     logger.log('No measurements to publish. Calling IE#tick() to still potentially advance the round.')
-    await ieContract.tick()
+    await pRetry(
+      () => ieContract.tick(),
+      {
+        onFailedAttempt: err => console.error(err),
+        retries: 5
+      }
+    )
     return
   }
 
