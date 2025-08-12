@@ -44,9 +44,15 @@ export const publish = async ({
     maxMeasurements
   ])
   if (measurements.length === 0) {
-    // IMPORTANT: We still need to publish an empty batch,
-    // otherwise the current round will never advance.
-    logger.log('WARNING: No measurements to publish. Publishing an empty batch.')
+    logger.log('No measurements to publish. Calling IE#tick() to still potentially advance the round.')
+    await pRetry(
+      () => ieContract.tick(),
+      {
+        onFailedAttempt: err => console.error(err),
+        retries: 5
+      }
+    )
+    return
   }
 
   // Fetch the count of all unpublished measurements - we need this for monitoring
@@ -61,18 +67,12 @@ export const publish = async ({
   // Share measurements
   const start = new Date()
 
-  let cid
-  if (measurements.length) {
-    const file = new File(
-      [measurements.map(m => JSON.stringify(m)).join('\n')],
-      'measurements.ndjson',
-      { type: 'application/json' }
-    )
-    cid = await web3Storage.uploadFile(file)
-  } else {
-    // bafkqaaa is a CID for an empty file
-    cid = 'bafkqaaa'
-  }
+  const file = new File(
+    [measurements.map(m => JSON.stringify(m)).join('\n')],
+    'measurements.ndjson',
+    { type: 'application/json' }
+  )
+  const cid = await web3Storage.uploadFile(file)
   const uploadMeasurementsDuration = new Date().getTime() - start.getTime()
   logger.log(`Measurements packaged in ${cid}`)
 
