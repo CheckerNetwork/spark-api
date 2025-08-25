@@ -48,7 +48,7 @@ export const publish = async ({
     await pRetry(
       () => ieContract.tick(),
       {
-        onFailedAttempt: err => console.error(err),
+        onFailedAttempt: ctx => console.error(ctx),
         retries: 5
       }
     )
@@ -80,7 +80,7 @@ export const publish = async ({
   const { roundIndex, ieAddMeasurementsDuration } = await pRetry(
     () => commitMeasurements({ cid, ieContract, logger, stuckTransactionsCanceller }),
     {
-      onFailedAttempt: err => console.error(err),
+      onFailedAttempt: ctx => console.error(ctx),
       retries: 5
     }
   )
