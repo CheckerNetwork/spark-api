@@ -30,6 +30,7 @@ jobs:
           - cross-spawn
           - '@ucanto/'
           - node
+          - raw-body
     steps:
       - name: Dependabot metadata
         id: metadata
