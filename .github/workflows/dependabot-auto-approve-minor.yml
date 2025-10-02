@@ -31,6 +31,7 @@ jobs:
           - '@ucanto/'
           - node
           - raw-body
+          - typescript
     steps:
       - name: Dependabot metadata
         id: metadata
