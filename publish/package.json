@@ -15,7 +15,7 @@
     "@web3-storage/access": "^20.3.0",
     "@web3-storage/w3up-client": "^16.5.2",
     "cancel-stuck-transactions": "^4.1.4",
-    "ethers": "^6.15.0",
+    "ethers": "^6.16.0",
     "p-retry": "^7.1.0",
     "pg": "^8.16.3"
   },
